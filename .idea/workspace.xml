@@ -1,22 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="e38f6198-00ee-4cd5-b6b3-3394a5bcd28e" name="Default" comment="">
-      <change beforePath="" afterPath="$PROJECT_DIR$/.idea/vcs.xml" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/core/io.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/core/temp.txt" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/main.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/main_test.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/protocol/decompress.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/protocol/pdu/caps.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/protocol/pdu/data.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/protocol/pdu/global.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/protocol/pdu/lic.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/protocol/pdu/sec.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/protocol/protocol.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/protocol/rdp.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/security/security.go" />
-    </list>
+    <list default="true" id="e38f6198-00ee-4cd5-b6b3-3394a5bcd28e" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
