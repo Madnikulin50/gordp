@@ -1,0 +1,48 @@
+/**
+ * Stream wrapper around buffer type
+ * @param i {Buffer | integer} size of init buffer
+ * @returns
+ */
+type Stream struct {
+ 	Buffer []byte
+ 	Offset int
+}
+
+func NewStreamByBuffer(buffer [] byte) *Stream {
+	stream := Stream{buffer, 0}
+	return &stream
+}
+
+func NewStreamByLength(length int) *Stream {
+	buffer := make([]byte, length)
+	stream := Stream{buffer, 0}
+	return &stream
+}
+
+/**
+ * Return length of available data in stream
+ * @returns {Number} length of available data in stream
+ */
+func (s Stream) AvailableLength() int {
+	return len(s.Buffer) - s.Offset
+}
+
+/**
+ * increment offset
+ * @param length {integer} length of padding
+ */
+func (s *Stream) ReadPadding(length int) {
+	s.Offset += length
+}
+
+/**
+ * Format string buffer
+ * @returns {string} buffer stringified
+ */
+func (s Stream) GetValue () string {
+	return string(s.Buffer)
+}
+
+func (s Stream) ReadBytes() int {
+	return len(s.Buffer) - s.Offset
+}

@@ -1,0 +1,635 @@
+package core
+
+import ("fmt"
+	"strings"
+	"reflect"
+	"bufio"
+	"bytes"
+	"encoding/binary"
+)
+
+type Reader struct {
+	bufio.Reader
+}
+
+func AvailableLength(reader *Reader) int {
+	bytes, err := reader.Peek(0)
+	if err != nil {
+		return 0
+	}
+	return len(bytes)
+}
+
+type Writer struct {
+	bufio.Writer
+}
+
+/**
+ * @param value {object | function} inner value
+ * @returns
+ */
+
+type CallableValueInterface interface {
+	WriteValue(writer *Writer) error
+	ReadValue(reader *Reader) error
+
+}
+
+type CallableValue struct {
+	value interface{}
+}
+
+func NewCallableValue(value interface{}) CallableValue {
+	return CallableValue{value}
+}
+
+/**
+ * For syntaxic purpose
+ */
+ /*
+Object.defineProperty(CallableValue.prototype, "value", {
+get: function() { return this._value(); },
+set: function(e) {
+if(typeof e !== 'function') {
+this._value = function () { return e; };
+}
+else {
+this._value = e;
+}
+}
+});*/
+
+type SizeDefinitor interface {
+	internalSize() int
+}
+
+/**
+ * Type readable or writable by binary stream
+ * @param {object} opt
+ * 			.conditional {boolean} read or write type depend on conditional call
+ * @returns
+ */
+type Type struct {
+	CallableValue
+	Opt interface {}
+	IsReaded bool
+	IsWritten bool
+}
+
+func (t *Type) WriteValue(w *Writer) error {
+	return nil
+}
+
+func (t *Type) ReadValue(r *Reader) error {
+	return nil
+}
+
+type ConditionalOption interface {
+	conditional() bool
+}
+
+type OptionalOption interface {
+}
+
+type ConstantOption interface {
+}
+
+func NewType(v interface{}, opt interface{}) *Type {
+	return &Type{
+		CallableValue{v},
+		opt,
+		false,
+		false}
+}
+
+/**
+ * Write type into binary stream s
+ * @param {type.Stream} s binary stream
+ */
+
+func (t Type) Write (w *Writer) error {
+	//do not write false conditional type
+	if t.Opt.(ConditionalOption) != nil	&& !t.Opt.(ConditionalOption).conditional() {
+		return nil
+		}
+
+
+	t.IsWritten = true
+	t.WriteValue(w)
+	return nil
+}
+
+
+/**
+ * Read type from binary stream
+ * @param {type.Stream} s binary stream
+ * @returns this to chain call
+ */
+ func (t *Type) Read (r *Reader) error {
+//do not read false conditional type
+	 if co, ok := t.Opt.(ConditionalOption); ok {
+	 	if !co.conditional() {
+			return nil
+		}
+	 }
+	if t.Opt.(OptionalOption) != nil && AvailableLength(r) < t.Size() {
+		return nil
+	}
+	t.IsReaded = true
+	var oldValue interface{}
+	//constant case
+	if t.Opt.(ConstantOption) != nil {
+		oldValue = t.value
+		err := t.ReadValue(r)
+		if err != nil {
+			return fmt.Errorf("NODE_RDP_CORE_TYPE_STREAM_TOO_SMALL %v", err)
+		}
+
+		if oldValue != t.value {
+			return fmt.Errorf("constant value mismatch %v != %v", oldValue, t.value)
+		}
+	} else {
+		err := t.ReadValue(r)
+		if err != nil {
+			return fmt.Errorf("NODE_RDP_CORE_TYPE_STREAM_TOO_SMALL %f", err)
+		}
+	}
+
+	return nil
+}
+
+/**
+ * Size of type
+ * @returns {int} Size of type
+ */
+ func (t *Type) Size () int {
+	 if co, ok := t.Opt.(ConditionalOption); ok {
+		 if !co.conditional() {
+			 return 0
+		 }
+	 }
+	 i := interface{}(*t)
+	return i.(SizeDefinitor).internalSize()
+}
+
+/**
+ * Convert type to stream
+ * Usefull when you want to buffer
+ * @returns {Stream}
+ */
+func (t Type) ToBytes() ([]byte, error){
+	var b bytes.Buffer
+	writer := bufio.NewWriter(&b)
+	err := t.Write(&Writer{*writer})
+	if err != nil {
+		return nil, err
+	}
+	return b.Bytes(), nil
+};
+
+/**
+ * Node of Raw types
+ * @param {object} obj composite object
+ * @param {object} opt Type parameters
+ */
+ type Component struct {
+ 	Type
+ 	obj interface{}
+ }
+
+ func NewComponent(obj interface{}, opt interface{}) *Component {
+	return &Component{Type: *NewType(nil, opt), obj: obj}
+}
+
+
+/**
+ * ignore criterion
+ * @param i {string} index name in obj
+ * @returns {Boolean} true if can be ignore
+ */
+ func (c *Component) Ignore(i string) bool {
+	if strings.LastIndex(i, "__") == 0 {
+		return true
+	 }
+
+	 v := reflect.ValueOf(c.obj)
+	 field := v.FieldByName(i)
+	// ignore function
+	if field.Kind() == reflect.Func {
+		return true
+	}
+	return false
+}
+
+func (c *Component) ignore(v *reflect.Value, i int) bool {
+	fieldName := v.Field(i).Type().Name()
+	if strings.LastIndex(fieldName, "__") == 0 {
+		return true
+	}
+
+	value := v.Field(i)
+	// ignore function
+	if value.Kind() == reflect.Func {
+		return true
+	}
+	return false
+}
+
+/**
+ * Write each sub type into stream
+ * @param {Stream} s
+ */
+ func (c *Component) WriteValue(w *Writer) {
+ 	v := reflect.ValueOf(c.obj)
+ 	numFields :=  v.NumField()
+ 	for i := 0; i < numFields; i++ {
+		if c.ignore(&v, i) {
+			continue
+		}
+		v.Field(i).Interface().(*Type).WriteValue(w)
+	}
+}
+
+/**
+ * Read each sub type into stream
+ * @param {Stream} s from read stream
+ */
+func (c *Component) ReadValue(r *Reader) {
+	v := reflect.ValueOf(c.obj)
+	numFields :=  v.NumField()
+	for i := 0; i < numFields; i++ {
+		if c.ignore(&v, i) {
+			continue
+		}
+		v.Field(i).Interface().(*Type).ReadValue(r)
+	}
+} /*
+Component.prototype.readValue = function(s) {
+var readStream = s;
+if(this.opt.readLength) {
+readStream = new Stream(s.buffer.slice(s.offset, s.offset + this.opt.readLength.value));
+}
+
+for(var i in this.obj) {
+// ignore meta information
+if(this.ignore(i)) {
+continue;
+}
+try {
+this.obj[i].read(readStream);
+}
+catch(e) {
+log.error('during read of field ' + i);
+throw e;
+}
+}
+
+// padding
+if (this.opt.readLength) {
+s.offset += this.opt.readLength.value;
+if (readStream.offset < this.opt.readLength.value) {
+log.debug('still have available data : read it as padding');
+}
+}
+};*/
+
+/**
+ * Sum size of sub types
+ */
+func (c *Component) internalSize () int {
+	var size int = 0
+	v := reflect.Indirect(reflect.ValueOf(c.obj))
+	for i:= 0; i < v.NumField(); i++ {
+		if c.ignore(&v, i) {
+			continue
+		}
+		size += v.Field(i).Interface().(*Type).Size()
+	}
+	return size
+}
+
+/**
+ * Leaf of tree type
+ * @param {number} value of type
+ * @param {function} readBufferCallback Buffer prototype read function
+ * @param {function} writeBufferCallback Buffer prototype write function
+ * @param {object} opt Type parameter
+ */
+ type SingleType struct {
+ 	Type
+}
+
+func NewSingleType(value interface{},
+	opt  interface{}) *SingleType {
+		s := SingleType { *NewType(value, opt)}
+		return &s
+}
+
+/**
+ * Write SingleType value into stream
+ * @param s
+ */
+
+/*
+SingleType.prototype.writeValue = function(s) {
+this.writeBufferCallback.call(s.buffer, this.value, s.offset);
+s.offset += this._size_();
+};*/
+
+/**
+ * Read SingleType value into stream
+ * @param {Stream} s from read stream
+ */
+/*
+SingleType.prototype.readValue = function(s) {
+this.value = this.readBufferCallback.call(s.buffer, s.offset);
+s.offset += this._size_();
+};*/
+
+/**
+ * Size of single type
+ * @returns Size of single type
+ *//*
+func (st *SingleType) _size_() int {
+	return st.nbBytes
+}*/
+
+/**
+ * Integer on 1 byte
+ * @param {number | function} value of type
+ * @param {object} opt	Type parameter
+ * @returns
+ */
+type UInt8 struct {
+	SingleType
+}
+
+
+
+func NewUInt8(v uint8, opt interface{} ) *UInt8 {
+	return &UInt8{*NewSingleType(v, opt)}
+}
+
+func (t *UInt8) Size () int {
+	return 1
+}
+
+func (t *UInt8) WriteValue(w *Writer) error {
+	b := make([] byte, 1)
+	b[0] = t.value.(byte)
+	w.Write(b)
+	return nil
+}
+
+func (t *UInt8) ReadValue(r *Reader) error {
+	b := make([] byte, 1)
+	r.Read(b)
+	t.value = b[0]
+	return nil
+}
+
+
+/**
+ * Integer on 2 bytes in Little Endian
+ * @param {number | function} value to write or compare if constant
+ * @param {object} opt	Type parameter
+ * @returns
+ */
+
+type UInt16Le struct {
+	SingleType
+}
+
+
+func NewUInt16Le(v uint16, opt interface{} ) *UInt16Le {
+	return &UInt16Le{*NewSingleType(v, opt)}
+}
+
+func (t *UInt16Le) Size () int {
+	return 2
+}
+
+func (t *UInt16Le) WriteValue(w *Writer) error {
+	b := make([] byte, 2)
+	b[0] = byte(t.value.(int16) >> 8)
+	b[1] = t.value.(byte)
+	w.Write(b)
+	return nil
+}
+
+func (t *UInt16Le) ReadValue(r *Reader) error {
+	b := make([] byte, 2)
+	r.Read(b)
+	t.value = int16(b[0]) << 8 + int16(b[1])
+	return nil
+}
+
+/**
+ * Integer on 2 bytes in Big Endian
+ * @param {number | function} value to write or compare if constant
+ * @param {object} opt	Type parameter
+ * @returns
+ */
+type UInt16Be struct {
+	SingleType
+}
+
+
+func NewUInt16Be(v uint16, opt interface{} ) *UInt16Be {
+	return &UInt16Be{*NewSingleType(v, opt)}
+}
+
+func (t *UInt16Be) Size () int {
+	return 2
+}
+
+func (t *UInt16Be) WriteValue(w *Writer) error {
+	b := make([] byte, 2)
+	b[1] = byte(t.value.(int16) >> 8)
+	b[0] = t.value.(byte)
+	w.Write(b)
+	return nil
+}
+
+func (t *UInt16Be) ReadValue(r *Reader) error {
+	b := make([] byte, 2)
+	r.Read(b)
+	t.value = int16(b[1]) << 8 + int16(b[0])
+	return nil
+}
+
+/**
+ * Integer on 4 bytes in Little Endian
+ * @param {number | function} value to write or compare if constant
+ * @param {object} opt	Type parameter
+ * @returns
+ */
+type UInt32Le struct {
+	SingleType
+}
+
+
+func NewUInt32Le(v uint32, opt interface{} ) *UInt32Le {
+	return &UInt32Le{*NewSingleType(v, opt)}
+}
+
+func (t *UInt32Le) Size () int {
+	return 4
+}
+
+func (t *UInt32Le) WriteValue(w *Writer) error {
+	b := make([] byte, 4)
+	binary.LittleEndian.PutUint32(b, t.value.(uint32))
+	w.Write(b)
+	return nil
+}
+
+func (t *UInt32Le) ReadValue(r *Reader) error {
+	b := make([] byte, 4)
+	r.Read(b)
+	t.value = binary.LittleEndian.Uint32(b)
+	return nil
+}
+
+/**
+ * Integer on 4 bytes in Big Endian
+ * @param {number | function} value to write or compare if constant
+ * @param {object} opt	Type parameter
+ * @returns
+ */
+type UInt32Be struct {
+	SingleType
+}
+
+
+func NewUInt32Be(v uint32, opt interface{} ) *UInt32Be {
+	return &UInt32Be{*NewSingleType(v, opt)}
+}
+
+func (t *UInt32Be) Size () int {
+	return 4
+}
+
+func (t *UInt32Be) WriteValue(w *Writer) error {
+	b := make([] byte, 4)
+	binary.BigEndian.PutUint32(b, t.value.(uint32))
+	w.Write(b)
+	return nil
+}
+
+func (t *UInt32Be) ReadValue(r *Reader) error {
+	b := make([] byte, 4)
+	r.Read(b)
+	t.value = binary.BigEndian.Uint32(b)
+	return nil
+}
+
+
+/**
+ * @param value {Buffer} javascript source string
+ * @param opt {object} type options
+ * 	.readLength {type} length for reading operation
+ * @returns {type.BinaryString}
+ */
+
+type BinaryString struct {
+	SingleType
+}
+
+
+func NewBinaryString(v []byte, opt interface{} ) *BinaryString {
+	return &BinaryString{*NewSingleType(v, opt)}
+}
+
+func (t *BinaryString) Size () int {
+	return t.Opt.(SizeDefinitor).internalSize()
+}
+
+func (t *BinaryString) WriteValue(w *Writer) error {
+	w.Write(t.value.([]byte))
+	return nil
+}
+
+func (t *BinaryString) ReadValue(r *Reader) error {
+	b := make([] byte, t.Size())
+	r.Read(b)
+	t.value = b
+	return nil
+}
+/*
+function BinaryString(value, opt) {
+Type.call(this, opt);
+this.value = value || new Buffer("");
+}
+
+//inherit from type
+inherits(BinaryString, Type);
+
+/**
+ * Write value into string
+ * @param s {type.Stream}
+ *//*
+BinaryString.prototype.writeValue = function(s) {
+this.value.copy(s.buffer, s.offset);
+s.offset += this._size_();
+};
+*/
+/**
+ * Read string from offset to read length if specified or end of stream
+ * @param s {type.Stream}
+ */
+/*BinaryString.prototype.readValue = function(s) {
+if(this.opt.readLength) {
+this.value = s.buffer.slice(s.offset, s.offset + this.opt.readLength.value);
+}
+else {
+this.value = s.buffer.slice(s.offset);
+}
+s.offset += this._size_();
+};*/
+
+/**
+ * @returns {integer} length of string
+ */
+/*BinaryString.prototype._size_ = function() {
+return this.value.length;
+};*/
+
+/**
+ * Dynamic built type depend on factory function
+ * @param message {object} parent object
+ * @param field {string} name of object field
+ * @param factory {function} factory use to built new type
+ * @param opt {object}	type options
+ */
+/*function Factory(factory, opt) {
+Type.call(this, opt);
+this.factory = factory;
+}*/
+
+//inherit from type
+//inherits(Factory, Type);
+
+/**
+ * build type and write into stream
+ * @param s {Stream} input stream
+ */
+/*Factory.prototype.writeValue = function(s) {
+this.factory(s);
+};*/
+
+/**
+ * build type and read from stream
+ * @param s {Stream} input stream
+ *//*
+Factory.prototype.readValue = function(s) {
+this.factory(s);
+};*/
+
+/**
+ * must be never called
+ *//*
+Factory.prototype._size_ = function() {
+throw new error.FatalError('NODE_RDP_CORE_TYPE_FACTORY_TYPE_HAVE_NO_SIZE');
+};*/
+
