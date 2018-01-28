@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="e38f6198-00ee-4cd5-b6b3-3394a5bcd28e" name="Default" comment="" />
+    <list default="true" id="e38f6198-00ee-4cd5-b6b3-3394a5bcd28e" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" afterPath="$PROJECT_DIR$/.gitignore" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change beforePath="$PROJECT_DIR$/core/io.go" afterPath="$PROJECT_DIR$/core/io.go" />
+      <change beforePath="$PROJECT_DIR$/protocol/pdu/data.go" afterPath="$PROJECT_DIR$/protocol/pdu/data.go" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -11,21 +16,23 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="data.go" pinned="false" current-in-tab="false">
+      <file leaf-file-name="data.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/protocol/pdu/data.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="174">
-              <caret line="110" column="3" lean-forward="false" selection-start-line="110" selection-start-column="3" selection-end-line="110" selection-end-column="3" />
-              <folding />
+            <state relative-caret-position="165">
+              <caret line="897" column="30" lean-forward="false" selection-start-line="897" selection-start-column="30" selection-end-line="897" selection-end-column="30" />
+              <folding>
+                <element signature="e#13#32#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="caps.go" pinned="false" current-in-tab="true">
+      <file leaf-file-name="caps.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/protocol/pdu/caps.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="165">
-              <caret line="31" column="0" lean-forward="false" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
+            <state relative-caret-position="44">
+              <caret line="3" column="16" lean-forward="true" selection-start-line="3" selection-start-column="4" selection-end-line="3" selection-end-column="16" />
               <folding />
             </state>
           </provider>
@@ -44,21 +51,11 @@
       <file leaf-file-name="io.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/core/io.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1030">
-              <caret line="77" column="14" lean-forward="false" selection-start-line="77" selection-start-column="5" selection-end-line="77" selection-end-column="14" />
+            <state relative-caret-position="189">
+              <caret line="91" column="48" lean-forward="false" selection-start-line="91" selection-start-column="48" selection-end-line="91" selection-end-column="48" />
               <folding>
-                <element signature="e#14#52#0" expanded="true" />
+                <element signature="e#14#58#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="type.txt" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/core/type.txt">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1350">
-              <caret line="90" column="0" lean-forward="false" selection-start-line="90" selection-start-column="0" selection-end-line="94" selection-end-column="1" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -83,16 +80,6 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="global.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/protocol/pdu/global.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="11" lean-forward="false" selection-start-line="0" selection-start-column="11" selection-end-line="0" selection-end-column="11" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="temp.txt" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/core/temp.txt">
           <provider selected="true" editor-type-id="text-editor">
@@ -106,8 +93,28 @@
       <file leaf-file-name="decompress.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/protocol/decompress.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="240">
+            <state relative-caret-position="-121">
               <caret line="16" column="33" lean-forward="false" selection-start-line="16" selection-start-column="14" selection-end-line="16" selection-end-column="33" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="protocol.go" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/protocol/protocol.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="0">
+              <caret line="0" column="9" lean-forward="false" selection-start-line="0" selection-start-column="9" selection-end-line="0" selection-end-column="9" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="rdp.go" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/protocol/rdp.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-27">
+              <caret line="10" column="20" lean-forward="false" selection-start-line="10" selection-start-column="20" selection-end-line="10" selection-end-column="20" />
               <folding />
             </state>
           </provider>
@@ -124,15 +131,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>ERRINFO_SHAREDATATOOSHOR</find>
-      <find>Stream</find>
-      <find>NewStream</find>
-      <find>readBufferCallback</find>
-      <find>function</find>
-      <find>CallableValueInterface</find>
-      <find>WriteValue</find>
-      <find>ReadValue</find>
-      <find>AvailableLength</find>
       <find>internalSize</find>
       <find>BinaryString</find>
       <find>shareControlHeader</find>
@@ -154,6 +152,15 @@
       <find>BrushSupport</find>
       <find>NO_BITMAP_COMPRESSION_HDR</find>
       <find>BRUSH_DEFAULT</find>
+      <find>PDUTYPE2_SYNCHRONIZE</find>
+      <find>StreamId</find>
+      <find>persistentListEntry</find>
+      <find>bitmapData</find>
+      <find>synchronizeUpdateDataPDU</find>
+      <find>shareDataHeader</find>
+      <find>cc240577</find>
+      <find>NewSharedDataHeader</find>
+      <find>NewShareControlHeader</find>
     </findStrings>
     <replaceStrings>
       <replace>RdpConnectionBase</replace>
@@ -184,11 +191,12 @@
         <option value="$PROJECT_DIR$/core/temp.txt" />
         <option value="$PROJECT_DIR$/core/type.go" />
         <option value="$PROJECT_DIR$/protocol/pdu/io.go" />
-        <option value="$PROJECT_DIR$/core/io.go" />
         <option value="$PROJECT_DIR$/protocol/pdu/global.go" />
         <option value="$PROJECT_DIR$/protocol/pdu/lic.go" />
         <option value="$PROJECT_DIR$/protocol/pdu/sec.go" />
         <option value="$PROJECT_DIR$/protocol/pdu/caps.go" />
+        <option value="$PROJECT_DIR$/.gitignore" />
+        <option value="$PROJECT_DIR$/core/io.go" />
         <option value="$PROJECT_DIR$/protocol/pdu/data.go" />
       </list>
     </option>
@@ -327,7 +335,7 @@
   <component name="ShelveChangesManager" show_recycled="false">
     <option name="remove_strategy" value="false" />
   </component>
-  <component name="TodoView">
+  <component name="TodoView" selected-index="2">
     <todo-panel id="selected-file">
       <is-autoscroll-to-source value="true" />
     </todo-panel>
@@ -338,9 +346,8 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1440" height="900" extended-state="0" />
-    <editor active="true" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32941177" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -367,7 +374,21 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="3" />
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/protocol/pdu/data.go</url>
+          <line>399</line>
+          <properties />
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/protocol/pdu/data.go</url>
+          <line>636</line>
+          <properties />
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+      </breakpoints>
+      <option name="time" value="5" />
     </breakpoint-manager>
     <watches-manager />
   </component>
@@ -376,7 +397,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="4800">
           <caret line="320" column="0" lean-forward="false" selection-start-line="320" selection-start-column="0" selection-end-line="320" selection-end-column="0" />
-          <folding />
+          <folding>
+            <element signature="e#13#32#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -437,6 +460,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="60">
           <caret line="4" column="12" lean-forward="false" selection-start-line="4" selection-start-column="12" selection-end-line="4" selection-end-column="12" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -473,6 +497,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="60">
           <caret line="4" column="12" lean-forward="false" selection-start-line="4" selection-start-column="12" selection-end-line="4" selection-end-column="12" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -494,20 +519,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/protocol/protocol.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="9" lean-forward="false" selection-start-line="0" selection-start-column="9" selection-end-line="0" selection-end-column="9" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/protocol/rdp.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="64">
-          <caret line="10" column="27" lean-forward="true" selection-start-line="10" selection-start-column="27" selection-end-line="10" selection-end-column="27" />
         </state>
       </provider>
     </entry>
@@ -555,18 +566,26 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/core/type.go" />
     <entry file="file://$PROJECT_DIR$/core/rle.go" />
-    <entry file="file://$PROJECT_DIR$/main.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="345">
-          <caret line="29" column="0" lean-forward="false" selection-start-line="29" selection-start-column="0" selection-end-line="31" selection-end-column="1" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/core/type.txt">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1350">
           <caret line="90" column="0" lean-forward="false" selection-start-line="90" selection-start-column="0" selection-end-line="94" selection-end-column="1" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/protocol/pdu/global.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="11" lean-forward="false" selection-start-line="0" selection-start-column="11" selection-end-line="0" selection-end-column="11" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="225">
+          <caret line="15" column="6" lean-forward="false" selection-start-line="15" selection-start-column="6" selection-end-line="15" selection-end-column="6" />
           <folding />
         </state>
       </provider>
@@ -579,15 +598,15 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/protocol/decompress.go">
+    <entry file="file://$PROJECT_DIR$/protocol/pdu/caps.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="240">
-          <caret line="16" column="33" lean-forward="false" selection-start-line="16" selection-start-column="14" selection-end-line="16" selection-end-column="33" />
+        <state relative-caret-position="44">
+          <caret line="3" column="16" lean-forward="true" selection-start-line="3" selection-start-column="4" selection-end-line="3" selection-end-column="16" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/protocol/pdu/global.go">
+    <entry file="file://$PROJECT_DIR$/protocol/pdu/sec.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="11" lean-forward="false" selection-start-line="0" selection-start-column="11" selection-end-line="0" selection-end-column="11" />
@@ -603,37 +622,55 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/protocol/pdu/sec.go">
+    <entry file="file://$PROJECT_DIR$/protocol/decompress.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-121">
+          <caret line="16" column="33" lean-forward="false" selection-start-line="16" selection-start-column="14" selection-end-line="16" selection-end-column="33" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/protocol/protocol.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
-          <caret line="0" column="11" lean-forward="false" selection-start-line="0" selection-start-column="11" selection-end-line="0" selection-end-column="11" />
+          <caret line="0" column="9" lean-forward="false" selection-start-line="0" selection-start-column="9" selection-end-line="0" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/protocol/rdp.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-27">
+          <caret line="10" column="20" lean-forward="false" selection-start-line="10" selection-start-column="20" selection-end-line="10" selection-end-column="20" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/main.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="345">
+          <caret line="29" column="0" lean-forward="false" selection-start-line="29" selection-start-column="0" selection-end-line="31" selection-end-column="1" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/core/io.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1030">
-          <caret line="77" column="14" lean-forward="false" selection-start-line="77" selection-start-column="5" selection-end-line="77" selection-end-column="14" />
+        <state relative-caret-position="189">
+          <caret line="91" column="48" lean-forward="false" selection-start-line="91" selection-start-column="48" selection-end-line="91" selection-end-column="48" />
           <folding>
-            <element signature="e#14#52#0" expanded="true" />
+            <element signature="e#14#58#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/protocol/pdu/data.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="174">
-          <caret line="110" column="3" lean-forward="false" selection-start-line="110" selection-start-column="3" selection-end-line="110" selection-end-column="3" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/protocol/pdu/caps.go">
-      <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="165">
-          <caret line="31" column="0" lean-forward="false" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
-          <folding />
+          <caret line="897" column="30" lean-forward="false" selection-start-line="897" selection-start-column="30" selection-end-line="897" selection-end-column="30" />
+          <folding>
+            <element signature="e#13#32#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

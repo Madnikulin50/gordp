@@ -3,33 +3,39 @@ package core
 import (
 	"bufio"
 	"encoding/binary"
+	"io"
 )
 
-type Reader struct {
-	bufio.Reader
+type Reader interface {
+	Read([]byte) error
 }
 
+type IoReader struct {
+	io io.Reader
+}
+
+/*
 func AvailableLength(reader *Reader) int {
 	bytes, err := reader.Peek(0)
 	if err != nil {
 		return 0
 	}
 	return len(bytes)
-}
+}*/
 
 type Writer struct {
 	bufio.Writer
 }
 
 type Readable interface{
-	Read(r *Reader) error
+	Read(r Reader) error
 }
 
 type Writable interface {
 	Write(w *Writer) error
 }
 
-func ReadBytes(len uint16, r *Reader) ([]byte, error) {
+func ReadBytes(len uint16, r Reader) ([]byte, error) {
 	b := make([] byte, len)
 	r.Read(b)
 	return b, nil
@@ -42,7 +48,7 @@ func WriteUInt8(data uint8, w *Writer) {
 }
 
 
-func ReadUInt8(r *Reader) (uint8, error) {
+func ReadUInt8(r Reader) (uint8, error) {
 	b := make([] byte, 1)
 	r.Read(b)
 	return uint8(b[0]), nil
@@ -56,7 +62,7 @@ func WriteUInt16LE(data uint16, w *Writer) {
 }
 
 
-func ReadUInt16LE(r *Reader) (uint16, error) {
+func ReadUInt16LE(r Reader) (uint16, error) {
 	b := make([] byte, 2)
 	r.Read(b)
 	return uint16(b[0]) << 8 + uint16(b[1]), nil
@@ -69,7 +75,7 @@ func WriteUInt32LE(data uint32, w *Writer) {
 }
 
 
-func ReadUInt32LE(r *Reader) (uint32, error) {
+func ReadUInt32LE(r Reader) (uint32, error) {
 	b := make([] byte, 4)
 	r.Read(b)
 	return binary.LittleEndian.Uint32(b), nil
@@ -83,11 +89,11 @@ func NewComponent(opt interface{}) *Component{
 	return &Component{opt}
 }
 
-func (c *Component) Write(writer *Writer) {
+func (c *Component) Write(writer *Writer) error {
 
 }
 
-func (c *Component) Read(reader *Reader) {
+func (c *Component) Read(reader *Reader) error {
 
 }
 
