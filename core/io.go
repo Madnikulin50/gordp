@@ -4,16 +4,40 @@ import (
 	"bufio"
 	"encoding/binary"
 	"io"
+	"errors"
 )
 
 type Reader interface {
-	Read([]byte) error
+	Read([]byte) (int, error)
 }
 
 type IoReader struct {
 	io io.Reader
 }
 
+type LimitedReader struct {
+	reader Reader
+	needRead int
+}
+
+func (reader* LimitedReader) Read(buffer []byte) (int, error) {
+	if reader.needRead == 0 {
+		return 0, io.EOF
+	}
+	need := len(buffer)
+	if need > reader.needRead {
+		res, err := reader.Read(buffer)
+		reader.needRead -= res
+		return res, err
+	}
+	need = reader.needRead
+	reader.needRead = 0
+	return reader.Read(buffer[:need])
+}
+
+func NewLimitedReader(reader Reader, needRead int) Reader {
+	return &LimitedReader{reader, needRead}
+}
 /*
 func AvailableLength(reader *Reader) int {
 	bytes, err := reader.Peek(0)
@@ -81,6 +105,16 @@ func ReadUInt32LE(r Reader) (uint32, error) {
 	return binary.LittleEndian.Uint32(b), nil
 }
 
+
+type Data interface {
+	Write(writer *Writer) error
+	Read(reader *Reader) error
+}
+
+func CalcDataLength(data Data) (uint16, error) {
+	return 0, errors.New("Not implemented")
+}
+
 type Component struct {
 	Opt interface{}
 }
@@ -90,11 +124,11 @@ func NewComponent(opt interface{}) *Component{
 }
 
 func (c *Component) Write(writer *Writer) error {
-
+	return errors.New("not implemented")
 }
 
 func (c *Component) Read(reader *Reader) error {
-
+	return errors.New("not implemented")
 }
 
 
