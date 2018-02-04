@@ -1,5 +1,7 @@
 package pdu
 
+import "../../core"
+
 // import "log"
 
 type PDUType byte
@@ -47,7 +49,7 @@ const /*PDUType2*/ (
 	PDUTYPE2_MONITOR_LAYOUT_PDU = 0x37
 )
 
-type StreamId int8
+type StreamId uint8
 /**
  * @see http=//msdn.microsoft.com/en-us/library/cc240577.aspx
  */
@@ -335,21 +337,22 @@ ERRINFO_DECRYPTFAILED2= 0x00001195
  * @returns {type.Component}
  */
  type  ShareControlHeader struct {
-	 Component
 	 totalLength uint16
 	 pduType uint16
 	 // for xp sp3 and deactiveallpdu PDUSource may not be present
-	 PDUSource uint16 "optional"
+	 PDUSource uint16 //optional
+
  }
-func NewShareControlHeader(length uint16, pduType uint16, userId int16, opt interface{}) * ShareControlHeader {
-	return *ShareControlHeader{ *NewComponent(opt), length, pduType, userId}
+
+func NewShareControlHeader(length uint16, pduType uint16, userId uint16) * ShareControlHeader {
+	return &ShareControlHeader{length, pduType, userId}
 }
 
-func (c *ShareControlHeader) Write(writer *Writer) {
+func (c *ShareControlHeader) Write(writer *core.Writer) {
 	panic("Нереализовано")
 }
 
-func (c *ShareControlHeader) Read(reader *Reader) {
+func (c *ShareControlHeader) Read(reader *core.Reader) {
 	panic("Нереализовано")
 }
 
@@ -362,27 +365,26 @@ func (c *ShareControlHeader) Read(reader *Reader) {
  * @returns {type.Component}
  */
 
-type  SharedDataHeader struct {
-	Component
+type SharedDataHeader struct {
 	shareId uint32
 	pad1 uint8
-	streamId uint8
+	streamId StreamId
 	uncompressedLength uint16
 	pduType2 uint8
 	compressedType uint8
 	compressedLength uint16
 }
 
-func NewSharedDataHeader(length uint16, pduType2 uint8, shareId uint32, opt interface{}) *SharedDataHeader {
-	return &SharedDataHeader{ *NewComponent(opt), shareId, 0, StreamId.STREAM_LOW,length -8,
+func NewSharedDataHeader(length uint16, pduType2 uint8, shareId uint32) *SharedDataHeader {
+	return &SharedDataHeader{ shareId, 0, STREAM_LOW,length - 8,
 		pduType2, 0, 0}
 }
 
-func (c *SharedDataHeader) Write(writer *Writer) {
+func (c *SharedDataHeader) Write(writer *core.Writer) {
 	panic("Нереализовано")
 }
 
-func (c *SharedDataHeader) Read(reader *Reader) {
+func (c *SharedDataHeader) Read(reader *core.Reader) {
 	panic("Нереализовано")
 }
 
@@ -396,7 +398,7 @@ func (c *SharedDataHeader) Read(reader *Reader) {
  */
 
 type DemandActivePDU struct {
-	Component
+	core.Component
 	__PDUTYPE__  PDUType
 	shareId uint32
 	lengthSourceDescriptor uint16
@@ -438,21 +440,17 @@ sessionId uint32
 return new type.Component(self, opt);
 	 */
 	sd := []byte("node-rdpjs")
-	return &DemandActivePDU{ *NewComponent(opt), PDUTYPE_DEMANDACTIVEPDU, 0,
-	len(sd), len(uint16) * 2 /*+ self.capabilitySets.size()*/,
-	sd, 0, 0, nil}
+	return &DemandActivePDU{ *core.NewComponent(opt), PDUTYPE_DEMANDACTIVEPDU, 0,
+		uint16(len(sd)), uint16(2 * 2) /*+ self.capabilitySets.size()*/,
+	sd, 0, 0, nil, 0}
 }
 
-func (c *DemandActivePDU) Write(writer *Writer) {
+func (c *DemandActivePDU) Write(writer *core.Writer) {
 	panic("Нереализовано")
 }
 
-func (c *DemandActivePDU) Read(reader *Reader) {
+func (c *DemandActivePDU) Read(reader *core.Reader) {
 	panic("Нереализовано")
-}
-
-func demandActivePDU(capabilities, opt) {
-
 }
 
 /**
@@ -462,7 +460,7 @@ func demandActivePDU(capabilities, opt) {
  * @param opt {object} type option
  * @returns {type.Component}
  */
-func confirmActivePDU(capabilities, shareId, opt) {
+/*func confirmActivePDU(capabilities, shareId, opt) {
 var self {
 __PDUTYPE__ : PDUType.PDUTYPE_CONFIRMACTIVEPDU,
 shareId : new type.UInt32Le(shareId),
@@ -489,26 +487,27 @@ self.capabilitySets.obj.push(caps.capability().read(s))
 };
 
 return new type.Component(self, opt);
-}
+}*/
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240536.aspx
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func deactiveAllPDU(opt) {
-var self = {
-__PDUTYPE__ : PDUType.PDUTYPE_DEACTIVATEALLPDU,
-shareId uint32
-lengthSourceDescriptor uint16func() {
-return self.sourceDescriptor.size();
-}),
-sourceDescriptor : new type.BinaryString(new Buffer('rdpy', 'binary'), { readLength : new type.CallableValue(func() {
-self.lengthSourceDescriptor
-}) })
-};
+*/
+type DeactiveAllPDU struct {
+	core.Component
+	__PDUTYPE__  PDUType
+	shareId uint32
+	lengthSourceDescriptor uint16
+	sourceDescriptor []byte
+}
 
-return new type.Component(self, opt);
+func NewDeactiveAllPDU(opt interface{}) *DeactiveAllPDU{
+	r := &DeactiveAllPDU{*core.NewComponent(opt), PDUTYPE_DEACTIVATEALLPDU,
+	0, 0, nil}
+	r.sourceDescriptor = []byte("rdpy")
+	r.lengthSourceDescriptor = uint16(len(r.sourceDescriptor))
+	return r
 }
 
 /**
@@ -516,14 +515,16 @@ return new type.Component(self, opt);
  * @param opt {object} type option
  * @returns {type.Component}
  */
-func synchronizeDataPDU(targetUser, opt) {
-var self = {
-__PDUTYPE2__ : PDUType2.PDUTYPE2_SYNCHRONIZE,
-messageType uint161, { constant : true }),
-targetUser uint16targetUser)
-};
+type SynchronizeDataPDU struct {
+	core.Component
+	__PDUTYPE2__  PDUType2
+	messageType uint16 //1, constant
+	targetUser uint16
+}
 
-return new type.Component(self, opt);
+func NewSynchronizeDataPDU(targetUser uint16, opt interface{}) *SynchronizeDataPDU {
+	return &SynchronizeDataPDU{ *core.NewComponent(opt),PDUTYPE2_SYNCHRONIZE,
+	1, targetUser}
 }
 
 /**
@@ -531,65 +532,69 @@ return new type.Component(self, opt);
  * @param action {integer}
  * @param opt  {object} type option
  * @returns {type.Component}
- */
-func controlDataPDU(action, opt) {
-var self = {
-__PDUTYPE2__ : PDUType2.PDUTYPE2_CONTROL,
-action uint16action),
-grantId uint16
-controlId uint32
-};
-
-return new type.Component(self, opt);
+*/
+type ControlDataPDU struct {
+	core.Component
+	__PDUTYPE2__  PDUType2
+	action uint16
+	grantId uint16
+	controlId uint32
 }
+
+func controlDataPDU(action uint16, opt interface{}) *ControlDataPDU {
+	return &ControlDataPDU{*core.NewComponent(opt), PDUTYPE2_CONTROL,action, 0, 0}
+	}
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240544.aspx
  * @param errorInfo {integer}
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func errorInfoDataPDU(errorInfo, opt) {
-var self = {
-__PDUTYPE2__ : PDUType2.PDUTYPE2_SET_ERROR_INFO_PDU,
-errorInfo : new type.UInt32Le(errorInfo)
-};
-
-return new type.Component(self, opt);
+*/
+type ErrorInfoDataPDU struct {
+	core.Component
+	__PDUTYPE2__  PDUType2
+	errorInfo uint32
+}
+func NewErrorInfoDataPDU(errorInfo uint32, opt interface{}) *ErrorInfoDataPDU {
+	return &ErrorInfoDataPDU{*core.NewComponent(opt), PDUTYPE2_SET_ERROR_INFO_PDU,errorInfo}
 }
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240498.aspx
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func fontListDataPDU(opt) {
-var self = {
-__PDUTYPE2__ : PDUType2.PDUTYPE2_FONTLIST,
-numberFonts uint16
-totalNumFonts uint16
-listFlags uint160x0003),
-entrySize uint160x0032)
-};
+*/
+type FontListDataPDU struct {
+	core.Component
+	__PDUTYPE2__  PDUType2
+	numberFonts uint16
+	totalNumFonts uint16
+	listFlags uint16
+	entrySize uint16
+}
 
-return new type.Component(self, opt);
+func NewFontListDataPDU(opt interface{}) *FontListDataPDU {
+	return &FontListDataPDU{*core.NewComponent(opt), PDUTYPE2_FONTLIST, 0, 0,
+	0x0003, 0x0032}
 }
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240498.aspx
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func fontMapDataPDU(opt) {
-var self = {
-__PDUTYPE2__ : PDUType2.PDUTYPE2_FONTMAP,
-numberEntries uint16
-totalNumEntries uint16
-mapFlags uint160x0003),
-entrySize uint160x0004)
-};
+*/
+type FontMapDataPDU struct {
+	core.Component
+	__PDUTYPE2__ PDUType2
+	numberEntries uint16
+	totalNumEntries uint16
+	mapFlags uint16
+	entrySize uint16
+}
 
-return new type.Component(self, opt);
+func NewFontMapDataPDU(opt interface{}) *FontMapDataPDU {
+	return &FontMapDataPDU{*core.NewComponent(opt), PDUTYPE2_FONTMAP, 0, 0, 0x0003, 0x0004}
 }
 
 /**
@@ -597,110 +602,124 @@ return new type.Component(self, opt);
  * @param opt {object} type option
  * @returns {type.Component}
  */
-func persistentListEntry(opt) {
-var self = {
-key1 uint32
-key2 uint32
-};
-
-return new type.Component(self, opt);
-}
+type PersistentListEntry struct {
+	key1 uint32
+	key2 uint32
+	}
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240495.aspx
  * @param entries {type.Component}
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func persistentListPDU(entries, opt) {
-var self = {
-__PDUTYPE2__ : PDUType2.PDUTYPE2_BITMAPCACHE_PERSISTENT_LIST,
-numEntriesCache0 uint16
-numEntriesCache1 uint16
-numEntriesCache2 uint16
-numEntriesCache3 uint16
-numEntriesCache4 uint16
-totalEntriesCache0 uint16
-totalEntriesCache1 uint16
-totalEntriesCache2 uint16
-totalEntriesCache3 uint16
-totalEntriesCache4 uint16
-bitMask : new type.UInt8(),
-pad2 : new type.UInt8(),
-pad3 uint16
+*/
+type PersistentListPDU struct {
+	core.Component
+	__PDUTYPE2__  PDUType2
+	numEntriesCache0 uint16
+	numEntriesCache1 uint16
+	numEntriesCache2 uint16
+	numEntriesCache3 uint16
+	numEntriesCache4 uint16
+	totalEntriesCache0 uint16
+	totalEntriesCache1 uint16
+	totalEntriesCache2 uint16
+	totalEntriesCache3 uint16
+	totalEntriesCache4 uint16
+	bitMask uint8
+	pad2 uint8
+	pad3 uint16
+	entries []PersistentListEntry
+}
+
+
+func NewPersistentListPDU(entries []PersistentListEntry, opt interface{}) *PersistentListPDU {
+	return &PersistentListPDU{*core.NewComponent(opt), PDUTYPE2_BITMAPCACHE_PERSISTENT_LIST,
+0, 0, 0, 0, 0, 0,0, 0,
+0,0, 0, 0, 0, entries}
+}
+
+func (pdu *PersistentListPDU) Read(r core.Reader) error {
+	return nil
+/*
 entries : entries || new type.Factory(func(s) {
 var numEntries = self.numEntriesCache0.value + self.numEntriesCache1.value + self.numEntriesCache2.value + self.numEntriesCache3.value + self.numEntriesCache4.value;
 self.entries = new type.Component([]);
 for(var i = 0; i < numEntries; i++) {
 self.entries.obj.push(persistentListEntry().read(s));
 }
-})
-};
+ */
+}
 
-return new type.Component(self, opt);
+type InputMessageBaseEvent struct {
+	core.Component
+	__INPUT_MESSAGE_TYPE__ InputMessageType
+}
+
+
+func NewInputMessageBaseEvent(t InputMessageType, opt interface{}) *InputMessageBaseEvent {
+	return &InputMessageBaseEvent{*core.NewComponent(opt), t}
 }
 
 /**
  * @see https://msdn.microsoft.com/en-us/library/cc240588.aspx
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func synchronizeEvent(opt) {
-var self = {
-__INPUT_MESSAGE_TYPE__ : InputMessageType.INPUT_EVENT_SYNC,
-pad2Octets uint16
-toggleFlags uint32
-};
+*/
+type SynchronizeEvent struct {
+	InputMessageBaseEvent
+	pad2Octets             uint16
+	toggleFlags            uint32
+}
 
-return new type.Component(self, opt);
+func NewSynchronizeEvent(opt interface{}) *SynchronizeEvent {
+	return &SynchronizeEvent{*NewInputMessageBaseEvent(INPUT_EVENT_SYNC, opt), 0,0}
 }
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240586.aspx
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func pointerEvent(opt) {
-var self = {
-__INPUT_MESSAGE_TYPE__ : InputMessageType.INPUT_EVENT_MOUSE,
-pointerFlags uint16
-xPos uint16
-yPos uint16)
-};
-
-return new type.Component(self, opt);
+*/
+type PointerEvent struct {
+	InputMessageBaseEvent
+	pointerFlags uint16
+	xPos uint16
+	yPos uint16
 }
 
+func NewPointerEvent(opt interface{}) *PointerEvent {
+	return &PointerEvent{*NewInputMessageBaseEvent(INPUT_EVENT_MOUSE, opt),0, 0, 0}
+}
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240584.aspx
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func scancodeKeyEvent(opt) {
-var self = {
-__INPUT_MESSAGE_TYPE__ : InputMessageType.INPUT_EVENT_SCANCODE,
-keyboardFlags uint16
-keyCode uint16
-pad2Octets uint16)
-};
+*/
+type ScancodeKeyEvent struct {
+	InputMessageBaseEvent
+	keyboardFlags uint16
+	keyCode uint16
+	pad2Octets uint16
+}
 
-return new type.Component(self, opt);
+func NewScancodeKeyEvent(opt interface{}) *ScancodeKeyEvent {
+	return &ScancodeKeyEvent{*NewInputMessageBaseEvent(INPUT_EVENT_SCANCODE, opt), 0,0, 0}
 }
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240585.aspx
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func unicodeKeyEvent(opt) {
-var self = {
-__INPUT_MESSAGE_TYPE__ : InputMessageType.INPUT_EVENT_UNICODE,
-keyboardFlags uint16
-unicode uint16
-pad2Octets uint16)
-};
-
-return new type.Component(self, opt);
+*/
+type UnicodeKeyEvent struct {
+	InputMessageBaseEvent
+	keyboardFlags uint16
+	unicode uint16
+	pad2Octets uint16
+}
+func NewUnicodeKeyEvent(opt interface{}) *UnicodeKeyEvent {
+	return &UnicodeKeyEvent{*NewInputMessageBaseEvent(INPUT_EVENT_UNICODE, opt), 0, 0, 0}
 }
 
 /**
@@ -708,7 +727,19 @@ return new type.Component(self, opt);
  * @param slowPathInputData {type.Component} message generate for slow path input event
  * @param opt {object} type option
  * @returns {type.Component}
- */
+*/
+type SlowPathInputEvent struct {
+	core.Component
+	eventTime uint32
+	messageType uint16
+	slowPathInputData []*InputMessageBaseEvent
+}
+
+func NewSlowPathInputEvent(opt interface{}) *SlowPathInputEvent {
+	return &SlowPathInputEvent{*core.NewComponent(opt), 0, 0, nil}
+}
+
+/*
 func slowPathInputEvent(slowPathInputData, opt) {
 var self = {
 eventTime uint32
@@ -736,14 +767,26 @@ log.error('unknown slowPathInputEvent ' + self.messageType.value);
 };
 
 return new type.Component(self, opt);
-}
+}*/
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc746160.aspx
  * @param inputs {type.Component} list of inputs
  * @param opt {object} type option
  * @returns {type.Component}
- */
+*/
+type ClientInputEventPDU struct {
+	core.Component
+	__PDUTYPE2__ PDUType2
+	numEvents uint16
+	pad2Octets uint16
+	slowPathInputEvents []*SlowPathInputEvent
+}
+
+func NewClientInputEventPDU(opt interface{}) *ClientInputEventPDU {
+	return &ClientInputEventPDU{*core.NewComponent(opt), PDUTYPE2_INPUT, 0,0, nil}
+}
+/*
 func clientInputEventPDU(inputs, opt) {
 var self = {
 __PDUTYPE2__ : PDUType2.PDUTYPE2_INPUT,
@@ -761,29 +804,31 @@ self.slowPathInputEvents.obj.push(slowPathInputEvent().read(s));
 
 return new type.Component(self, opt);
 }
-
+*/
 /**
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func shutdownRequestPDU(opt) {
-var self = {
-__PDUTYPE2__ : PDUType2.PDUTYPE2_SHUTDOWN_REQUEST
-};
+*/
+type ShutdownRequestPDU struct {
+	core.Component
+	__PDUTYPE2__ PDUType2
+}
 
-return new type.Component(self, opt);
+func NewShutdownRequestPDU(opt interface{}) *ShutdownRequestPDU {
+	return &ShutdownRequestPDU{*core.NewComponent(opt), PDUTYPE2_SHUTDOWN_REQUEST}
 }
 
 /**
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func shutdownDeniedPDU(opt) {
-var self = {
-__PDUTYPE2__ : PDUType2.PDUTYPE2_SHUTDOWN_DENIED
-};
+*/
+type ShutdownDeniedPDU struct {
+	core.Component
+	__PDUTYPE2__ PDUType2
+}
 
-return new type.Component(self, opt);
+func NewShutdownDeniedPDU(opt interface{}) *ShutdownRequestPDU {
+	return &ShutdownRequestPDU{*core.NewComponent(opt), PDUTYPE2_SHUTDOWN_DENIED}
 }
 
 /**
@@ -791,22 +836,34 @@ return new type.Component(self, opt);
  * @param opt {object} type option
  * @returns {type.Component}
  */
-func inclusiveRectangle(opt) {
-var self = {
-left uint16
-top uint16
-right uint16
-bottom uint16)
-};
-
-return new type.Component(self, opt);
+type InclusiveRectangle struct {
+	left uint16
+	top uint16
+	right uint16
+	bottom uint16
 }
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240648.aspx
  * @param opt {object} type option
  * @returns {type.Component}
- */
+*/
+type SupressOutputDataPDU struct {
+	core.Component
+	__PDUTYPE2__ PDUType2
+	allowDisplayUpdates uint8
+	pad3Octets_1 uint8
+	pad3Octets_2 uint8
+	pad3Octets_3 uint8
+	desktopRect *InclusiveRectangle
+}
+
+func NewSupressOutputDataPDU(opt interface{}) *SupressOutputDataPDU {
+	return &SupressOutputDataPDU{*core.NewComponent(opt), PDUTYPE2_SUPPRESS_OUTPUT,
+	0, 0, 0, 0, nil}
+}
+
+/*
 func supressOutputDataPDU(opt) {
 var self = {
 __PDUTYPE2__ : PDUType2.PDUTYPE2_SUPPRESS_OUTPUT,
@@ -818,15 +875,30 @@ return self.allowDisplayUpdates.value === Display.ALLOW_DISPLAY_UPDATES;
 };
 
 return new type.Component(self, opt);
-}
+}*/
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240646.aspx
  * @param rectangles {type.Component} list of inclusive rectangles
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func refreshRectPDU(rectangles, opt) {
+*/
+type RefreshRectPDU struct {
+	core.Component
+	__PDUTYPE2__ PDUType2
+	numberOfAreas uint8
+	pad3Octets_1 uint8
+	pad3Octets_2 uint8
+	pad3Octets_3 uint8
+	areasToRefresh []*InclusiveRectangle
+}
+
+func NewRefreshRectPDU(restangles []*InclusiveRectangle, opt interface{}) *RefreshRectPDU {
+	return &RefreshRectPDU{*core.NewComponent(opt), PDUTYPE2_SUPPRESS_OUTPUT,
+		uint8(len(restangles)), 0, 0, 0, restangles}
+}
+
+/*func refreshRectPDU(rectangles, opt) {
 var self = {
 __PDUTYPE2__ : PDUType2.PDUTYPE2_REFRESH_RECT,
 numberOfAreas : UInt8(func() {
@@ -843,23 +915,25 @@ self.areasToRefresh.obj.push(inclusiveRectangle().read(s));
 
 return new type.Component(self, opt);
 }
-
+*/
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240644.aspx
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func bitmapCompressedDataHeader(opt) {
-var self = {
-cbCompFirstRowSize uint160x0000, { constant : true }),
-// compressed data size
-cbCompMainBodySize uint16
-cbScanWidth uint16
-// uncompressed data size
-cbUncompressedSize uint16)
-};
+*/
+type BitmapCompressedDataHeader struct {
+	core.Component
+	cbCompFirstRowSize uint16 // constant : true
+	// compressed data size
+	cbCompMainBodySize uint16
+	cbScanWidth uint16
+	// uncompressed data size
+	cbUncompressedSize uint16
+}
 
-return new type.Component(self, opt);
+func NewBitmapCompressedDataHeader(opt interface{}) *BitmapCompressedDataHeader {
+	return &BitmapCompressedDataHeader{*core.NewComponent(opt),
+		0x0000, 0, 0, 0}
 }
 
 /**
@@ -876,7 +950,28 @@ return new type.Component(self, opt);
  * @param opt {object} type option
  * @returns {type.Component}
  */
-func bitmapData(coord, opt) {
+type BitmapData struct {
+	core.Component
+	destLeft uint16
+	destTop uint16
+	destRight uint16
+	destBottom uint16
+	width uint16
+	height uint16
+	bitsPerPixel uint16
+	flags uint16
+	bitmapLength uint16
+	bitmapComprHdr *BitmapCompressedDataHeader
+	bitmapDataStream []byte
+}
+
+func NewBitmapData(opt interface{}) *BitmapData {
+	return &BitmapData{*core.NewComponent(opt), 0, 0, 0,0,0,0,0,
+	0,0, nil, nil}
+
+}
+
+ /*func bitmapData(coord, opt) {
 coord = coord || {};
 var self = {
 destLeft uint16coord.destLeft),
@@ -904,7 +999,7 @@ return self.bitmapComprHdr.cbCompMainBodySize.value;
 };
 
 return new type.Component(self, opt);
-}
+}*/
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/dd306368.aspx
@@ -912,6 +1007,14 @@ return new type.Component(self, opt);
  * @param opt {object} type option
  * @returns {type.Component}
  */
+type BitmapUpdateDataPDU struct {
+	core.Component
+	__UPDATE_TYPE__ UpdateType
+	numberRectangles uint16
+	rectangles []*BitmapData
+}
+
+/*
 func bitmapUpdateDataPDU(data, opt) {
 var self = {
 __UPDATE_TYPE__ : UpdateType.UPDATETYPE_BITMAP,
@@ -929,17 +1032,21 @@ self.rectangles.obj.push(bitmapData().read(s));
 return new type.Component(self, opt);
 }
 
+ */
+
 /**
  * @see https://msdn.microsoft.com/en-us/library/cc240613.aspx
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func synchronizeUpdateDataPDU(opt) {
-var self = {
-pad2Octets uint16)
-};
+*/
 
-return new type.Component(self, opt);
+type SynchronizeUpdateDataPDU struct {
+	core.Component
+	pad2Octets uint16
+}
+
+func NewSynchronizeUpdateDataPDU(opt interface{}) *SynchronizeUpdateDataPDU {
+	return &SynchronizeUpdateDataPDU{*core.NewComponent(opt), 0}
 }
 
 /**
@@ -947,7 +1054,20 @@ return new type.Component(self, opt);
  * @param updateData {type.Component} update data (ex: bitmapUpdateDataPDU)
  * @param opt {object} type option
  * @returns {type.Component}
- */
+*/
+
+type UpdateDataPDU struct {
+	core.Component
+	__PDUTYPE2__  PDUType2
+	updateType uint16
+	updateData interface{}
+}
+
+func NewUpdateDataPDU(opt interface{}) *UpdateDataPDU {
+	return &UpdateDataPDU{*core.NewComponent(opt), 0, 0, nil}
+}
+
+ /*
 func updateDataPDU(updateData, opt) {
 var self = {
 __PDUTYPE2_ : PDUType2.PDUTYPE2_UPDATE__,
@@ -974,14 +1094,25 @@ log.debug('unknown updateDataPDU ' + self.updateType.value);
 };
 
 return new type.Component(self, opt);
-}
+}*/
 
 /**
  * @param pduData {type.Component}
  * @param shareId {integer}
  * @param opt {object} type option
  * @returns {type.Component}
- */
+*/
+type DataPDU struct {
+	core.Component
+	__PDUTYPE__ PDUType
+	shareDataHeader SharedDataHeader
+	pduData interface{}
+}
+
+func NewDataPDU(opt interface{}) *DataPDU {
+	return &DataPDU{*core.NewComponent(opt), 0, *NewSharedDataHeader(0, 0, 0), nil}
+}
+/*
 func dataPDU(pduData, shareId, opt) {
 var self = {
 __PDUTYPE__ : PDUType.PDUTYPE_DATAPDU,
@@ -1043,14 +1174,24 @@ log.debug('unknown PDUType2 ' + self.shareDataHeader.obj.pduType2.value);
 
 return new type.Component(self, opt);
 }
-
+*/
 /**
  * @param userId {integer}
  * @param pduMessage {type.Component} pdu message
  * @param opt {object} type option
  * @returns {type.Component}
- */
-func pdu(userId, pduMessage, opt) {
+*/
+type PDU struct {
+	core.Component
+	shareControlHeader ShareControlHeader
+	pduMessage interface{}
+}
+
+func NewPDU(opt interface{}) *PDU {
+	return &PDU{*core.NewComponent(opt), *NewShareControlHeader(0, 0, 0), nil}
+}
+
+/*func pdu(userId, pduMessage, opt) {
 var self = {
 shareControlHeader : shareControlHeader(func() {
 return new type.Component(self).size();
@@ -1085,13 +1226,25 @@ log.debug('unknown pdu type ' + self.shareControlHeader.obj.pduType.value);
 };
 
 return new type.Component(self, opt);
-}
+}*/
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/dd306368.aspx
  * @param opt {object} type option
  * @returns {type.Component}
- */
+*/
+
+type FastPathBitmapUpdateDataPDU struct {
+	core.Component
+	__FASTPATH_UPDATE_TYPE__ FastPathUpdateType
+	header uint16
+	numberRectangles uint16
+	rectangles []BitmapData
+}
+func NewFastPathBitmapUpdateDataPDU(opt interface{}) *FastPathBitmapUpdateDataPDU {
+	return &FastPathBitmapUpdateDataPDU{*core.NewComponent(opt), FASTPATH_UPDATETYPE_BITMAP, 0, 0, nil}
+}
+/*
 func fastPathBitmapUpdateDataPDU (opt) {
 var self = {
 __FASTPATH_UPDATE_TYPE__ : FastPathUpdateType.FASTPATH_UPDATETYPE_BITMAP,
@@ -1109,13 +1262,25 @@ self.rectangles.obj.push(bitmapData().read(s));
 
 return new type.Component(self, opt);
 }
-
+*/
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240622.aspx
  * @param updateData {type.Component}
  * @param opt {object} type option
  * @returns {type.Component}
- */
+*/
+type FastPathUpdatePDU struct {
+	core.Component
+	updateHeader uint8
+	compressionFlags uint8
+	size uint16
+	updateData interface {}
+}
+
+func NewFastPathUpdatePDU(opt interface{}) *FastPathUpdatePDU {
+	return &FastPathUpdatePDU{*core.NewComponent(opt), 0, 0, 0, nil}
+}
+/*
 func fastPathUpdatePDU (updateData, opt) {
 var self = {
 updateHeader : new type.UInt8( func () {
@@ -1145,3 +1310,4 @@ log.debug('unknown fast path pdu type ' + (self.updateHeader.value & 0xf));
 
 return new type.Component(self, opt);
 }
+*/
