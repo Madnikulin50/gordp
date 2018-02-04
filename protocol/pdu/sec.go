@@ -1,5 +1,14 @@
 package pdu
 
+import (
+	"crypto/sha1"
+	"crypto/md5"
+	"bytes"
+	"encoding/binary"
+	"../../core"
+	"github.com/chuckpreslar/emission"
+)
+
 /*
  * Copyright (c) 2014-2015 Sylvain Peyrefitte
  *
@@ -19,85 +28,79 @@ package pdu
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-var inherits = require('util').inherits;
-var crypto = require('crypto');
-var events = require('events');
-var type = require('../../core').type;
-var error = require('../../core').error;
-var log = require('../../core').log;
-var gcc = require('../t125/gcc');
-var lic = require('./lic');
-var cert = require('../cert');
-var rsa = require('../../security').rsa;
-
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240579.aspx
- */
-var SecurityFlag = {
-SEC_EXCHANGE_PKT : 0x0001,
-SEC_TRANSPORT_REQ : 0x0002,
-RDP_SEC_TRANSPORT_RSP : 0x0004,
-SEC_ENCRYPT : 0x0008,
-SEC_RESET_SEQNO : 0x0010,
-SEC_IGNORE_SEQNO : 0x0020,
-SEC_INFO_PKT : 0x0040,
-SEC_LICENSE_PKT : 0x0080,
-SEC_LICENSE_ENCRYPT_CS : 0x0200,
-SEC_LICENSE_ENCRYPT_SC : 0x0200,
-SEC_REDIRECTION_PKT : 0x0400,
-SEC_SECURE_CHECKSUM : 0x0800,
-SEC_AUTODETECT_REQ : 0x1000,
-SEC_AUTODETECT_RSP : 0x2000,
-SEC_HEARTBEAT : 0x4000,
-SEC_FLAGSHI_VALID : 0x8000
-};
+*/
+type SecurityFlag uint16
+
+const (
+SEC_EXCHANGE_PKT SecurityFlag = 0x0001
+SEC_TRANSPORT_REQ = 0x0002
+RDP_SEC_TRANSPORT_RSP = 0x0004
+SEC_ENCRYPT = 0x0008
+SEC_RESET_SEQNO = 0x0010
+SEC_IGNORE_SEQNO = 0x0020
+SEC_INFO_PKT = 0x0040
+SEC_LICENSE_PKT = 0x0080
+SEC_LICENSE_ENCRYPT_CS = 0x0200
+SEC_LICENSE_ENCRYPT_SC = 0x0200
+SEC_REDIRECTION_PKT = 0x0400
+SEC_SECURE_CHECKSUM = 0x0800
+SEC_AUTODETECT_REQ = 0x1000
+SEC_AUTODETECT_RSP = 0x2000
+SEC_HEARTBEAT = 0x4000
+SEC_FLAGSHI_VALID = 0x8000
+)
 
 /**
  * @see https://msdn.microsoft.com/en-us/library/cc240475.aspx
  */
-var InfoFlag = {
-INFO_MOUSE : 0x00000001,
-INFO_DISABLECTRLALTDEL : 0x00000002,
-INFO_AUTOLOGON : 0x00000008,
-INFO_UNICODE : 0x00000010,
-INFO_MAXIMIZESHELL : 0x00000020,
-INFO_LOGONNOTIFY : 0x00000040,
-INFO_COMPRESSION : 0x00000080,
-INFO_ENABLEWINDOWSKEY : 0x00000100,
-INFO_REMOTECONSOLEAUDIO : 0x00002000,
-INFO_FORCE_ENCRYPTED_CS_PDU : 0x00004000,
-INFO_RAIL : 0x00008000,
-INFO_LOGONERRORS : 0x00010000,
-INFO_MOUSE_HAS_WHEEL : 0x00020000,
-INFO_PASSWORD_IS_SC_PIN : 0x00040000,
-INFO_NOAUDIOPLAYBACK : 0x00080000,
-INFO_USING_SAVED_CREDS : 0x00100000,
-INFO_AUDIOCAPTURE : 0x00200000,
-INFO_VIDEO_DISABLE : 0x00400000,
-INFO_CompressionTypeMask : 0x00001E00
-};
+type InfoFlag uint32
+const (
+INFO_MOUSE InfoFlag = 0x00000001
+INFO_DISABLECTRLALTDEL = 0x00000002
+INFO_AUTOLOGON = 0x00000008
+INFO_UNICODE = 0x00000010
+INFO_MAXIMIZESHELL = 0x00000020
+INFO_LOGONNOTIFY = 0x00000040
+INFO_COMPRESSION = 0x00000080
+INFO_ENABLEWINDOWSKEY = 0x00000100
+INFO_REMOTECONSOLEAUDIO = 0x00002000
+INFO_FORCE_ENCRYPTED_CS_PDU = 0x00004000
+INFO_RAIL = 0x00008000
+INFO_LOGONERRORS = 0x00010000
+INFO_MOUSE_HAS_WHEEL = 0x00020000
+INFO_PASSWORD_IS_SC_PIN = 0x00040000
+INFO_NOAUDIOPLAYBACK = 0x00080000
+INFO_USING_SAVED_CREDS = 0x00100000
+INFO_AUDIOCAPTURE = 0x00200000
+INFO_VIDEO_DISABLE = 0x00400000
+INFO_CompressionTypeMask = 0x00001E00
+)
 
 /**
  * @see https://msdn.microsoft.com/en-us/library/cc240476.aspx
  */
-var AfInet = {
-AfInet : 0x00002,
-AF_INET6 : 0x0017
-};
+type AfInet uint16
+const (
+AF_INET AfInet = 0x00002
+AF_INET6 = 0x0017
+)
 
 /**
  * @see https://msdn.microsoft.com/en-us/library/cc240476.aspx
  */
-var PerfFlag = {
-PERF_DISABLE_WALLPAPER : 0x00000001,
-PERF_DISABLE_FULLWINDOWDRAG : 0x00000002,
-PERF_DISABLE_MENUANIMATIONS : 0x00000004,
-PERF_DISABLE_THEMING : 0x00000008,
-PERF_DISABLE_CURSOR_SHADOW : 0x00000020,
-PERF_DISABLE_CURSORSETTINGS : 0x00000040,
-PERF_ENABLE_FONT_SMOOTHING : 0x00000080,
-PERF_ENABLE_DESKTOP_COMPOSITION : 0x00000100
-};
+type PerfFlag uint32
+const (
+PERF_DISABLE_WALLPAPER PerfFlag = 0x00000001
+PERF_DISABLE_FULLWINDOWDRAG = 0x00000002
+PERF_DISABLE_MENUANIMATIONS = 0x00000004
+PERF_DISABLE_THEMING = 0x00000008
+PERF_DISABLE_CURSOR_SHADOW = 0x00000020
+PERF_DISABLE_CURSORSETTINGS = 0x00000040
+PERF_ENABLE_FONT_SMOOTHING = 0x00000080
+PERF_ENABLE_DESKTOP_COMPOSITION = 0x00000100
+)
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc241992.aspx
@@ -107,7 +110,20 @@ PERF_ENABLE_DESKTOP_COMPOSITION : 0x00000100
  * @param salt2 {Buffer} another salt (ex : server random)
  * @return {Buffer}
  */
-function saltedHash(input, salt, salt1, salt2) {
+func SaltedHash(input []byte, salt []byte, salt1 []byte, salt2 []byte) []byte {
+	sha1Digest := sha1.New()
+	sha1Digest.Write(input)
+	sha1Digest.Write(salt[:48])
+	sha1Digest.Write(salt1)
+	sha1Digest.Write(salt2)
+
+
+	md5Digest := md5.New()
+	md5Digest.Write(salt[:48])
+	md5Digest.Write(sha1Digest.Sum(nil))
+	return md5Digest.Sum(nil)
+}
+/*{
 var sha1Digest = crypto.createHash('sha1');
 sha1Digest.update(input);
 sha1Digest.update(salt.slice(0, 48));
@@ -120,7 +136,7 @@ var md5Digest = crypto.createHash('md5');
 md5Digest.update(salt.slice(0, 48));
 md5Digest.update(sha1Sig);
 return md5Digest.digest();
-}
+}*/
 
 /**
  * @param key {Buffer} secret
@@ -128,12 +144,11 @@ return md5Digest.digest();
  * @param random2 {Buffer} server random
  * @returns {Buffer}
  */
-function finalHash (key, random1, random2) {
-var md5Digest = crypto.createHash('md5');
-md5Digest.update(key);
-md5Digest.update(random1);
-md5Digest.update(random2);
-return md5Digest.digest();
+func FinalHash (key []byte, random1 []byte, random2 []byte) []byte {
+	md5Digest := md5.New()
+	md5Digest.Write(key)
+	md5Digest.Write(random1)
+	return md5Digest.Sum(random2)
 }
 
 /**
@@ -143,16 +158,16 @@ return md5Digest.digest();
  * @param random2 {Buffer} server random
  * @returns {Buffer}
  */
-function masterSecret (secret, random1, random2) {
-var sh1 = saltedHash(new Buffer('A'), secret, random1, random2);
-var sh2 = saltedHash(new Buffer('BB'), secret, random1, random2);
-var sh3 = saltedHash(new Buffer('CCC'), secret, random1, random2);
+func MasterSecret (secret []byte, random1 []byte, random2 []byte) []byte {
+	sh1 := SaltedHash([]byte("A"), secret, random1, random2)
+	sh2 := SaltedHash([]byte("BB"), secret, random1, random2)
+	sh3 := SaltedHash([]byte("CCC"), secret, random1, random2)
 
-var ms = new Buffer(sh1.length + sh2.length + sh3.length);
-sh1.copy(ms);
-sh2.copy(ms, sh1.length);
-sh3.copy(ms, sh1.length + sh2.length);
-return ms;
+	ms := bytes.NewBuffer(nil)
+	ms.Write(sh1)
+	ms.Write(sh2)
+	ms.Write(sh3)
+	return ms.Bytes()
 }
 
 /**
@@ -161,7 +176,27 @@ return ms;
  * @param data {Buffer} data
  * @returns {Buffer}
  */
-function macData(macSaltKey, data) {
+func MacData(macSaltKey []byte, data []byte) []byte {
+	salt1 := bytes.Repeat([]byte{0x36}, 40)
+	salt2 := bytes.Repeat([]byte{0x5c}, 48)
+
+	dataLength := make([] byte, 4)
+	binary.LittleEndian.PutUint32(dataLength, uint32(len(data)))
+
+	sha1Digest := sha1.New()
+	sha1Digest.Write(macSaltKey)
+	sha1Digest.Write(salt1)
+	sha1Digest.Write(dataLength)
+	sha1Digest.Write(data)
+
+	md5Digest := md5.New()
+	md5Digest.Write(macSaltKey)
+	md5Digest.Write(salt2)
+	md5Digest.Write(sha1Digest.Sum(nil))
+
+	return md5Digest.Sum(nil)
+}
+/*{
 var salt1 = new Buffer(40);
 salt1.fill(0x36);
 
@@ -183,13 +218,32 @@ md5.update(salt2);
 md5.update(sha1Digest);
 
 return md5.digest();
-}
+}*/
 
 /**
  * RDP client informations
  * @param extendedInfoConditional {boolean} true if RDP5+
  * @returns {type.Component}
- */
+*/
+
+type RdpInfos struct {
+	core.Component
+	codePage uint32
+	flag uint32
+	cbDomain uint16
+	cbUserName uint16
+	cbPassword uint16
+	cbAlternateShell uint16
+	cbWorkingDir uint16
+	domain []byte
+	userName []byte
+	password []byte
+	alternateShell []byte
+	workingDir []byte
+	extendedInfo RdpExtendedInfos
+}
+
+/*
 function rdpInfos(extendedInfoConditional) {
 var self = {
 codePage : new type.UInt32Le(),
@@ -229,12 +283,26 @@ extendedInfo : rdpExtendedInfos({ conditional : extendedInfoConditional })
 
 return new type.Component(self);
 }
+*/
 
 /**
  * RDP client extended informations present in RDP5+
  * @param opt
  * @returns {type.Component}
- */
+*/
+type RdpExtendedInfos struct {
+	core.Component
+	clientAddressFamily uint16
+	cbClientAddress uint16
+	clientAddress []byte
+	cbClientDir uint16
+	clientDir []byte
+	clientTimeZone []byte
+	clientSessionId uint32
+	performanceFlags uint32
+}
+
+/*
 function rdpExtendedInfos(opt) {
 var self = {
 clientAddressFamily : new type.UInt16Le(AfInet.AfInet),
@@ -255,12 +323,17 @@ clientSessionId : new type.UInt32Le(),
 performanceFlags : new type.UInt32Le()
 };
 return new type.Component(self, opt);
-}
+}*/
 
 /**
  * Header of security header
  * @returns {type.Component}
- */
+*/
+type SecurityHeader struct {
+	securityFlag uint16
+	securityFlagHi uint16
+}
+/*
 function securityHeader() {
 var self = {
 securityFlag : new type.UInt16Le(),
@@ -268,13 +341,24 @@ securityFlagHi : new type.UInt16Le()
 };
 
 return new type.Component(self);
-}
+}*/
 
 /**
  * Security layer
  * @param transport {events.EventEmitter}
  */
-function Sec(transport, fastPathTransport) {
+type Sec struct {
+	emission.Emitter
+	transport interface{}
+	fastPathTransport interface{}
+	// init at connect event from transport layer
+	gccClient interface{}
+	gccServer interface{}
+	infos RdpInfos
+	machineName string
+	// basic encryption
+	enableEncryption bool
+}/*Sec(transport, fastPathTransport) {
 this.transport = transport;
 this.fastPathTransport = fastPathTransport;
 // init at connect event from transport layer
@@ -295,29 +379,30 @@ this.fastPathTransport.on('fastPathData', function (secFlag, s) {
 self.recvFastPath(secFlag, s);
 });
 }
-};
+};*/
 
 //inherit from Layer
-inherits(Sec, events.EventEmitter);
+//inherits(Sec, events.EventEmitter);
 
 /**
  * Send message with security header
  * @param flag {integer} security flag
  * @param data {type.*} message
  */
+/*
 Sec.prototype.sendFlagged = function(flag, data) {
 this.transport.send('global', new type.Component([
 new type.UInt16Le(flag),
 new type.UInt16Le(),
 data
 ]));
-};
+};*
 
 /**
  * Main send function
  * @param message {type.*} message to send
  */
-Sec.prototype.send = function(message) {
+/*Sec.prototype.send = function(message) {
 if (this.enableEncryption) {
 throw new error.FatalError('NODE_RDP_PROTOCOL_PDU_SEC_ENCRYPT_NOT_IMPLEMENTED');
 }
@@ -328,6 +413,7 @@ this.transport.send('global', message);
  * Main receive function
  * @param s {type.Stream}
  */
+ /*
 Sec.prototype.recv = function(s) {
 if (this.enableEncryption) {
 throw new error.FatalError('NODE_RDP_PROTOCOL_PDU_SEC_ENCRYPT_NOT_IMPLEMENTED');
@@ -335,21 +421,29 @@ throw new error.FatalError('NODE_RDP_PROTOCOL_PDU_SEC_ENCRYPT_NOT_IMPLEMENTED');
 // not support yet basic RDP security layer
 this.emit('data', s);
 };
-
+*/
 /**
  * Receive fast path data
  * @param secFlag {integer} security flag
  * @param s {type.Stream}
  */
+/*
 Sec.prototype.recvFastPath = function (secFlag, s) {
 // transparent because basic RDP security layer not implemented
 this.emit('fastPathData', secFlag, s);
 };
-
+*/
 /**
  * Client security layer
  * @param transport {events.EventEmitter}
  */
+type Client struct {
+	Sec
+	// for basic RDP layer (in futur)
+	enableSecureCheckSum bool
+}
+
+ /*
 function Client(transport, fastPathTransport) {
 Sec.call(this, transport, fastPathTransport);
 // for basic RDP layer (in futur)
@@ -363,9 +457,9 @@ self.emit('close');
 self.emit('error', err);
 });
 };
-
+*/
 //inherit from Layer
-inherits(Client, Sec);
+// inherits(Client, Sec);
 
 /**
  * Connect event
