@@ -7,6 +7,9 @@ import (
 	"encoding/binary"
 	"../../core"
 	"github.com/chuckpreslar/emission"
+	"crypto"
+	"crypto/rsa"
+	"errors"
 )
 
 /*
@@ -348,9 +351,8 @@ return new type.Component(self);
  * @param transport {events.EventEmitter}
  */
 type Sec struct {
-	emission.Emitter
-	transport interface{}
-	fastPathTransport interface{}
+	transport core.Transport
+	fastPathTransport core.Transport
 	// init at connect event from transport layer
 	gccClient interface{}
 	gccServer interface{}
@@ -358,7 +360,27 @@ type Sec struct {
 	machineName string
 	// basic encryption
 	enableEncryption bool
-}/*Sec(transport, fastPathTransport) {
+}
+
+func NewSec(transport core.Transport, fastPathTransport core.Transport) *Sec {
+	this := &Sec{transport,fastPathTransport, nil, nil,
+	nil, "", false}
+	/* TODO var self = this;
+	this.infos = rdpInfos(function() {
+		return self.gccClient.core.rdpVersion.value === gcc.VERSION.RDP_VERSION_5_PLUS;
+	});
+
+
+
+	if (this.fastPathTransport) {
+		this.fastPathTransport.on('fastPathData', function (secFlag, s) {
+			self.recvFastPath(secFlag, s);
+		});
+	}
+	*/
+}
+
+/*Sec(transport, fastPathTransport) {
 this.transport = transport;
 this.fastPathTransport = fastPathTransport;
 // init at connect event from transport layer
@@ -389,7 +411,7 @@ self.recvFastPath(secFlag, s);
  * @param flag {integer} security flag
  * @param data {type.*} message
  */
-/*
+
 Sec.prototype.sendFlagged = function(flag, data) {
 this.transport.send('global', new type.Component([
 new type.UInt16Le(flag),
@@ -413,14 +435,14 @@ this.transport.send('global', message);
  * Main receive function
  * @param s {type.Stream}
  */
- /*
-Sec.prototype.recv = function(s) {
-if (this.enableEncryption) {
-throw new error.FatalError('NODE_RDP_PROTOCOL_PDU_SEC_ENCRYPT_NOT_IMPLEMENTED');
+
+func (this *Sec) Recv {
+	if (this.enableEncryption) {
+		panic(errors.New("NODE_RDP_PROTOCOL_PDU_SEC_ENCRYPT_NOT_IMPLEMENTED"))
+	}
+	// not support yet basic RDP security layer
+	this.emit('data', s);
 }
-// not support yet basic RDP security layer
-this.emit('data', s);
-};
 */
 /**
  * Receive fast path data
@@ -437,10 +459,15 @@ this.emit('fastPathData', secFlag, s);
  * Client security layer
  * @param transport {events.EventEmitter}
  */
-type Client struct {
+type SecClient struct {
 	Sec
 	// for basic RDP layer (in futur)
 	enableSecureCheckSum bool
+}
+
+func NewSecClient (transport core.Transport, fastPathTransport interface{}) *SecClient {
+	this := &SecClient{NewSec{transport, fastPathTransport}, false}
+	return this
 }
 
  /*

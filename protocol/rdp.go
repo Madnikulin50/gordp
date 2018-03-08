@@ -1,26 +1,35 @@
 package protocol
 
-import "net"
+import (
+	"net"
+	"../core"
+)
 /
 /**
  * Main RDP module
  */
-struct RdpClient {
-	config interface {}
+type RdpClient struct {
+	config map[string]string
 	connected bool
-	bufferLayer BufferLayer
+	bufferLayer core.BufferLayer
+	tpkt *TPKT
+	x224 *X224Client
+	mcs *MCSClient
+
+
 
 }
 
-function RdpClient(config) {
-config = config || {};
-this.connected = false;
-this.bufferLayer = new layer.BufferLayer(new net.Socket());
-this.tpkt = new TPKT(this.bufferLayer);
-this.x224 = new x224.Client(this.tpkt);
-this.mcs = new t125.mcs.Client(this.x224);
-this.sec = new pdu.sec.Client(this.mcs, this.tpkt);
-this.global = new pdu.global.Client(this.sec, this.sec);
+func NewRdpClient(config *map[string]string) {
+	client := RdpClient{}
+	client.config = config || make(map[string]string)
+	client.connected = false
+	client.bufferLayer = core.NewBufferLayer(nil)
+	client.tpkt = NewTPKT(client.bufferLayer)
+	client.x224 = new NewX224Client(this.tpkt)
+	client.mcs = new t125.mcs.Client(this.x224);
+	client.sec = new pdu.sec.Client(this.mcs, this.tpkt);
+	client.global = new pdu.global.Client(this.sec, this.sec);
 
 // config log level
 log.level = log.Levels[config.logLevel || 'INFO'] || log.Levels.INFO;
@@ -250,9 +259,3 @@ event.obj.yPos.value = y;
 
 this.global.sendInputEvents([event]);
 }
-
-function createClient(config) {
-return new RdpClient(config);
-};
-
-/**

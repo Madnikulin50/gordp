@@ -1,11 +1,9 @@
 package gordp
 
 import (
-	"encoding/asn1"
-	"encoding/json"
-	"errors"
 	"log"
 	"net"
+	"errors"
 )
 
 type RdpConnectionParams struct {
@@ -28,35 +26,36 @@ type RdpBitmap struct {
 
 
 type RdpConnectionBase struct {
-	conn     *net.Conn
+	params *RdpConnectionParams
+	conn *net.Conn
 }
 
 func NewRdpConnection(params *RdpConnectionParams) *RdpConnectionBase {
-	return &RdpConnectionBase{params}
+	return &RdpConnectionBase{params, nil}
 }
 
 func (con *RdpConnectionBase) Connect(params *RdpConnectionParams) error {
-
+	return errors.New("Not implemented")
 }
 
 func (con *RdpConnectionBase) Close() error {
-	return nil
+	return errors.New("Not implemented")
 }
 
 func (con *RdpConnectionBase) SendPointerEvent(x int, y int, button int, pressed bool) error {
-	return nil
+	return errors.New("Not implemented")
 }
 
 func (con *RdpConnectionBase) SendWheelEvent(x int, y int, step int, isNegative bool, isHorizontal bool) error {
-	return nil
+	return errors.New("Not implemented")
 }
 
 func (con *RdpConnectionBase) SendKeyEventScancode(code int, isPressed bool) error {
-	return nil
+	return errors.New("Not implemented")
 }
 
 func (con *RdpConnectionBase) SendKeyEventUnicode(code int, isPressed bool) error {
-	return nil
+	return errors.New("Not implemented")
 }
 
 func (con *RdpConnectionBase) OnConnect() (bool, error) {

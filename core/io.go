@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bufio"
 	"encoding/binary"
 	"io"
 	"errors"
@@ -9,10 +8,6 @@ import (
 
 type Reader interface {
 	Read([]byte) (int, error)
-}
-
-type IoReader struct {
-	io io.Reader
 }
 
 type LimitedReader struct {
@@ -35,7 +30,11 @@ func (reader* LimitedReader) Read(buffer []byte) (int, error) {
 	return reader.Read(buffer[:need])
 }
 
-func NewLimitedReader(reader Reader, needRead int) Reader {
+func (reader* LimitedReader) GetNeedRead() int  {
+	return reader.needRead
+}
+
+func NewLimitedReader(reader Reader, needRead int) *LimitedReader {
 	return &LimitedReader{reader, needRead}
 }
 /*
@@ -47,8 +46,8 @@ func AvailableLength(reader *Reader) int {
 	return len(bytes)
 }*/
 
-type Writer struct {
-	bufio.Writer
+type Writer interface {
+	Write(p []byte) (n int, err error)
 }
 
 type Readable interface{
@@ -56,13 +55,48 @@ type Readable interface{
 }
 
 type Writable interface {
-	Write(w *Writer) error
+	Write(w Writer) error
 }
 
-func ReadBytes(len uint16, r Reader) []byte {
+func AllocAndReadBytes(len int, r Reader) []byte {
 	b := make([] byte, len)
-	r.Read(b)
+	io.ReadFull(r, b)
 	return b
+}
+
+func ReadBytes(b []byte, r Reader) (int, error) {
+	return io.ReadFull(r, b)
+}
+
+func WriteBytes(b []byte, w Writer) (int, error) {
+	return w.Write(b)
+}
+
+type ReadBytesComplete func (result [] byte, err error)
+
+func StartReadBytes (b []byte, r Reader, cb ReadBytesComplete) {
+	go func () {
+		_, err := io.ReadFull(r, b)
+		cb(b, err)
+	}()
+}
+
+type OnBytes func (r Reader, err error)
+
+func WaitData(r Reader, cb OnBytes) {
+	go func () {
+		_, err := io.ReadFull(r, b)
+		cb(b, err)
+	}()
+}
+
+func StartAllocAndReadBytes (length int, r Reader, cb ReadBytesComplete) {
+	b := make([] byte, length)
+
+	go func () {
+		_, err := io.ReadFull(r, b)
+		cb(b, err)
+	}()
 }
 
 func WriteUInt8(data uint8, w Writer) {
@@ -72,9 +106,9 @@ func WriteUInt8(data uint8, w Writer) {
 }
 
 
+
 func ReadUInt8(r Reader) (uint8) {
-	b := make([] byte, 1)
-	r.Read(b)
+	b := AllocAndReadBytes(1, r)
 	return uint8(b[0])
 }
 
@@ -86,14 +120,12 @@ func WriteByte(data byte, w Writer) {
 
 
 func ReadByte(r Reader) (byte) {
-	b := make([] byte, 1)
-	r.Read(b)
+	b := AllocAndReadBytes(1, r)
 	return b[0]
 }
 
 func ReadPadding(length int, r Reader) {
-	b := make([] byte, length)
-	r.Read(b)
+	AllocAndReadBytes(length, r)
 }
 
 func WritePadding(length int, w Writer) {
@@ -111,8 +143,7 @@ func WriteUInt16LE(data uint16, w Writer) {
 
 
 func ReadUInt16BE(r Reader) (uint16) {
-	b := make([] byte, 2)
-	r.Read(b)
+	b := AllocAndReadBytes(2, r)
 	return uint16(b[1]) << 8 + uint16(b[0])
 }
 
@@ -125,8 +156,7 @@ func WriteUInt16BE(data uint16, w Writer) {
 
 
 func ReadUInt16LE(r Reader) (uint16) {
-	b := make([] byte, 2)
-	r.Read(b)
+	b := AllocAndReadBytes(2, r)
 	return uint16(b[0]) << 8 + uint16(b[1])
 }
 
@@ -138,15 +168,13 @@ func WriteUInt32LE(data uint32, w Writer) {
 
 
 func ReadUInt32LE(r Reader) (uint32) {
-	b := make([] byte, 4)
-	r.Read(b)
+	b := AllocAndReadBytes(4, r)
 	return binary.LittleEndian.Uint32(b)
 }
 
 
 func ReadUInt32BE(r Reader) (uint32) {
-	b := make([] byte, 4)
-	r.Read(b)
+	b := AllocAndReadBytes(4, r)
 	return binary.BigEndian.Uint32(b)
 }
 
@@ -160,12 +188,25 @@ func WriteUInt32BE(data uint32, w Writer) {
 
 
 type Data interface {
-	Write(writer *Writer) error
-	Read(reader *Reader) error
+	Write(writer Writer) error
+	Read(reader Reader) error
 }
 
-func CalcDataLength(data Data) (uint16, error) {
-	return 0, errors.New("not implemented")
+type LengthCalculator struct {
+	len int
+}
+
+func (calc *LengthCalculator) Write(p []byte) (n int, err error) {
+	l := len(p)
+	calc.len += l
+	return l, nil
+}
+
+
+func CalcDataLength(obj Writable) int {
+	calc := &LengthCalculator{0}
+	obj.Write(calc)
+	return calc.len
 }
 
 type Component struct {
