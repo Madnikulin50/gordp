@@ -1,39 +1,15 @@
-package pdu
+package sec
 
 import (
 	"crypto/sha1"
 	"crypto/md5"
 	"bytes"
 	"encoding/binary"
-	"../../core"
-	"github.com/chuckpreslar/emission"
-	"crypto"
-	"crypto/rsa"
+	"../../../core"
 	"errors"
 )
 
-/*
- * Copyright (c) 2014-2015 Sylvain Peyrefitte
- *
- * This file is part of node-rdpjs.
- *
- * node-rdpjs is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
-/**
- * @see http://msdn.microsoft.com/en-us/library/cc240579.aspx
-*/
 type SecurityFlag uint16
 
 const (
@@ -412,7 +388,7 @@ self.recvFastPath(secFlag, s);
  * @param data {type.*} message
  */
 
-Sec.prototype.sendFlagged = function(flag, data) {
+func (s *Sec) SendFlagged(flag uint16, data *core.Data) {
 this.transport.send('global', new type.Component([
 new type.UInt16Le(flag),
 new type.UInt16Le(),
@@ -436,12 +412,12 @@ this.transport.send('global', message);
  * @param s {type.Stream}
  */
 
-func (this *Sec) Recv {
-	if (this.enableEncryption) {
+func (s *Sec) Read (data []byte) (int, error) {
+	if s.enableEncryption {
 		panic(errors.New("NODE_RDP_PROTOCOL_PDU_SEC_ENCRYPT_NOT_IMPLEMENTED"))
 	}
 	// not support yet basic RDP security layer
-	this.emit('data', s);
+	s.emit('data', s);
 }
 */
 /**

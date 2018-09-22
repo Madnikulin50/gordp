@@ -23,13 +23,14 @@ func (str *TestStruct) Write(writer Writer) error {
 	return nil
 }
 func (str *TestStruct) Read(reader Reader) error {
-	str.b = ReadByte(reader)
-	str.u8 = ReadUInt8(reader)
-	str.u16le = ReadUInt16LE(reader)
-	str.u16be = ReadUInt16BE(reader)
-	str.u32le = ReadUInt32LE(reader)
-	str.u32be = ReadUInt32BE(reader)
-	return nil
+	var err error
+	str.b, err = ReadByte(reader)
+	str.u8, err = ReadUInt8(reader)
+	str.u16le, err = ReadUInt16LE(reader)
+	str.u16be, err = ReadUInt16BE(reader)
+	str.u32le, err = ReadUInt32LE(reader)
+	str.u32be, err = ReadUInt32BE(reader)
+	return err
 }
 
 func TestReadWriteStruct(t *testing.T) {

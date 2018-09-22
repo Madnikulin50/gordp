@@ -58,10 +58,10 @@ type Writable interface {
 	Write(w Writer) error
 }
 
-func AllocAndReadBytes(len int, r Reader) []byte {
+func AllocAndReadBytes(len int, r Reader) ([]byte, error) {
 	b := make([] byte, len)
-	io.ReadFull(r, b)
-	return b
+	len, err := io.ReadFull(r, b)
+	return b[:len], err
 }
 
 func ReadBytes(b []byte, r Reader) (int, error) {
@@ -81,15 +81,6 @@ func StartReadBytes (b []byte, r Reader, cb ReadBytesComplete) {
 	}()
 }
 
-type OnBytes func (r Reader, err error)
-
-func WaitData(r Reader, cb OnBytes) {
-	go func () {
-		_, err := io.ReadFull(r, b)
-		cb(b, err)
-	}()
-}
-
 func StartAllocAndReadBytes (length int, r Reader, cb ReadBytesComplete) {
 	b := make([] byte, length)
 
@@ -99,90 +90,96 @@ func StartAllocAndReadBytes (length int, r Reader, cb ReadBytesComplete) {
 	}()
 }
 
-func WriteUInt8(data uint8, w Writer) {
+func WriteUInt8(data uint8, w Writer) (int, error) {
 	b := make([] byte, 1)
 	b[0] = byte(data)
-	w.Write(b)
+	return w.Write(b)
 }
 
 
 
-func ReadUInt8(r Reader) (uint8) {
-	b := AllocAndReadBytes(1, r)
-	return uint8(b[0])
+func ReadUInt8(r Reader) (uint8, error) {
+	b, err := AllocAndReadBytes(1, r)
+	return uint8(b[0]), err
 }
 
-func WriteByte(data byte, w Writer) {
+func WriteByte(data byte, w Writer) (int, error) {
 	b := make([] byte, 1)
 	b[0] = byte(data)
-	w.Write(b)
+	return w.Write(b)
 }
 
 
-func ReadByte(r Reader) (byte) {
-	b := AllocAndReadBytes(1, r)
-	return b[0]
+func ReadByte(r Reader) (byte, error) {
+	b, err := AllocAndReadBytes(1, r)
+	return b[0], err
 }
 
 func ReadPadding(length int, r Reader) {
 	AllocAndReadBytes(length, r)
 }
 
-func WritePadding(length int, w Writer) {
+func WritePadding(length int, w Writer) (int, error) {
 	b := make([] byte, length)
-	w.Write(b)
+	return w.Write(b)
 }
 
 
-func WriteUInt16LE(data uint16, w Writer) {
+func WriteUInt16LE(data uint16, w Writer) (int, error) {
 	b := make([] byte, 2)
 	b[0] = byte(data >> 8)
 	b[1] = byte(data)
-	w.Write(b)
+	return w.Write(b)
 }
 
 
-func ReadUInt16BE(r Reader) (uint16) {
-	b := AllocAndReadBytes(2, r)
-	return uint16(b[1]) << 8 + uint16(b[0])
+func ReadUInt16BE(r Reader) (uint16, error)	{
+	b, err := AllocAndReadBytes(2, r)
+	if err != nil {
+		return 0, err
+	}
+	return uint16(b[1]) << 8 + uint16(b[0]), nil
 }
 
-func WriteUInt16BE(data uint16, w Writer) {
+func WriteUInt16BE(data uint16, w Writer) (int, error) {
 	b := make([] byte, 2)
 	b[1] = byte(data >> 8)
 	b[0] = byte(data)
-	w.Write(b)
+	return w.Write(b)
 }
 
 
-func ReadUInt16LE(r Reader) (uint16) {
-	b := AllocAndReadBytes(2, r)
-	return uint16(b[0]) << 8 + uint16(b[1])
+func ReadUInt16LE(r Reader) (uint16, error) {
+	b, err := AllocAndReadBytes(2, r)
+	if err != nil {
+		return 0, err
+	}
+	return uint16(b[0]) << 8 + uint16(b[1]), nil
 }
 
-func WriteUInt32LE(data uint32, w Writer) {
+func WriteUInt32LE(data uint32, w Writer) (int, error) {
 	b := make([] byte, 4)
 	binary.LittleEndian.PutUint32(b, data)
-	w.Write(b)
+	return w.Write(b)
 }
 
 
-func ReadUInt32LE(r Reader) (uint32) {
-	b := AllocAndReadBytes(4, r)
-	return binary.LittleEndian.Uint32(b)
+func ReadUInt32LE(r Reader) (uint32, error) {
+	b, err := AllocAndReadBytes(4, r)
+	return binary.LittleEndian.Uint32(b), err
 }
 
 
-func ReadUInt32BE(r Reader) (uint32) {
-	b := AllocAndReadBytes(4, r)
-	return binary.BigEndian.Uint32(b)
+func ReadUInt32BE(r Reader) (uint32, error) {
+	b, err := AllocAndReadBytes(4, r)
+	return binary.BigEndian.Uint32(b), err
 }
 
 
-func WriteUInt32BE(data uint32, w Writer) {
+func WriteUInt32BE(data uint32, w Writer) (int, error) {
 	b := make([] byte, 4)
 	binary.BigEndian.PutUint32(b, data)
-	w.Write(b)
+	return w.Write(b)
 }
 
 

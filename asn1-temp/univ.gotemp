@@ -33,89 +33,84 @@ const (
  * @param value {boolean} inner value
 */
 type Boolean struct {
-	Spec
 	value bool
 }
 
+type Univ interface {
+	Decode(r core.Reader, decoder Decoder)
+	Encode(w core.Writer, decoder Decoder)
+	Spec() Spec
+}
+
+
 func NewBoolean(value bool) *Boolean {
-	return &Boolean{*NewSpec(Universal, Primitive, UT_Boolean)}
+	return &Boolean{*NewSpec(Universal, Primitive, UT_Boolean), value}
 }
 
-
-/**
- * @param s {type.Stream}
- * @param decoder {ber.decoder}
- * @returns {Boolean}
- */
-func (boolean* Boolean) Decode(r core.Reader, decoder Decoder) {
-	boolean.value = decoder.Decode(boolean.Tag, r)[0] != 0
+func (b* Boolean) Decode(r core.Reader, decoder Decoder) {
+	b.value = decoder.Decode(b.Tag, r)[0] != 0
 }
 
-/**
- * @param decoder {ber.decoder}
- * @returns {type.*}
- */
-Boolean.prototype.encode = function(encoder) {
-if(this.value) {
-return encoder.encode(this.tag, new type.UInt8(0xff));
+func (b Boolean) Encode(w core.Writer, decoder Decoder) {
+	var v uint8 = 0
+	if b.value == false {
+		v = 0xFF
+	}
+	decoder.Encode(b.Tag, core.UInt8ToBytes(v), w)
 }
-else {
-return encoder.encode(this.tag, new type.UInt8(0));
-}
-};
 
 /**
  * Integer type
  * @param value {integer | Buffer}
- */
-function Integer(value) {
-spec.Asn1Spec.call(this, new spec.Asn1Tag(spec.TagClass.Universal, spec.TagFormat.Primitive, UniversalTag.Integer));
-this.value = value || 0;
+*/
+type Integer struct {
+	Spec
+	value int
+}
+func NewInteger(value int) *Integer {
+	return &Integer{*NewSpec(Universal, Primitive, UT_Integer), value}
 }
 
-inherits(Integer, spec.Asn1Spec);
+
 
 /**
  * @param s {type.Stream}
  * @param decoder {ber.decoder}
  * @returns {Integer}
- */
-Integer.prototype.decode = function(s, decoder) {
-var integerBuffer = decoder.decode(s, this.tag).value;
-if(integerBuffer.length < 5) {
-var integerStream = new type.Stream(integerBuffer);
-while (integerStream.availableLength() > 0) {
-this.value = this.value << 8;
-this.value |= new type.UInt8().read(integerStream).value;
+*/
+func (i* Integer) Decode(r core.Reader, decoder Decoder) {
+	buf := decoder.Decode(i.Tag, r)
+	i.value = 0
+	for _, cur := range buf {
+		i.value = i.value << 8
+		i.value |= int(cur)
+	}
 }
-}
-// bignum case
-else {
-this.value = integerBuffer;
-}
-return this;
-};
 
 /**
  * @param encoder {ber.decoder}
  * @returns {type.*}
- */
-Integer.prototype.encode = function(encoder) {
-if(this.value <= 0xff) {
-return encoder.encode(this.tag, new type.UInt8(this.value));
+*/
+
+func (i Integer) Encode(w core.Writer, decoder Decoder) {
+	if i.value <= 0xff {
+		decoder.Encode(i.Tag, core.UInt8ToBytes(uint8(i.value)), w)
+	} else if i.value <= 0xff {
+		decoder.Encode(i.Tag, core.UInt16BeToBytes(uint16(i.value)), w)
+	}
+	decoder.Encode(i.Tag, core.UInt32BeToBytes(uint32(i.value)), w)
 }
-else if(this.value <= 0xffff) {
-return encoder.encode(this.tag, new type.UInt16Be(this.value));
-}
-else {
-return encoder.encode(this.tag, new type.UInt32Be(this.value));
-}
-};
+
 
 /**
  * Sequence type
  * @param value {object}
  */
+type Sequence struct {
+	Spec
+	value [] interface{}
+}
+
 function Sequence(value) {
 spec.Asn1Spec.call(this, new spec.Asn1Tag(spec.TagClass.Universal, spec.TagFormat.Constructed, UniversalTag.Sequence));
 this.value = value || [];

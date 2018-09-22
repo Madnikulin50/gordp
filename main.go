@@ -30,11 +30,12 @@ type RdpConnectionBase struct {
 	conn *net.Conn
 }
 
-func NewRdpConnection(params *RdpConnectionParams) *RdpConnectionBase {
-	return &RdpConnectionBase{params, nil}
+func NewRdpConnectionBase() *RdpConnectionBase {
+	return &RdpConnectionBase{nil, nil}
 }
 
 func (con *RdpConnectionBase) Connect(params *RdpConnectionParams) error {
+	con.params = params
 	return errors.New("Not implemented")
 }
 

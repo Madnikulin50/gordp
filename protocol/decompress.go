@@ -6,11 +6,11 @@ type BitmapInterface interface {
 }
 
 
-**
+/**
 * decompress bitmap from RLE algorithm
 * @param	bitmap	{object} bitmap object of bitmap event of node-rdpjs
-*/
-func decompress (bitmap *pdu.BitmapData) {
+*/ /*
+func decompress (bitmap * pdu.BitmapData) {
 	var fName interface {}
 	switch (bitmap.bitsPerPixel.value) {
 	case 15:
@@ -51,4 +51,4 @@ func decompress (bitmap *pdu.BitmapData) {
 	rle._free(outputPtr);
 
 	return output;
-	}
+	} */

@@ -1,15 +1,18 @@
 package pdu
 
-import "../../core"
+import (
+	"../../core"
+	"errors"
+)
 
 // import "log"
 
-type PDUType byte
+type PduType byte
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240576.aspx
  */
 const /*PDUType*/ (
-	PDUTYPE_DEMANDACTIVEPDU  PDUType = 0x11
+	PDUTYPE_DEMANDACTIVEPDU  PduType = 0x11
 	PDUTYPE_CONFIRMACTIVEPDU = 0x13
 	PDUTYPE_DEACTIVATEALLPDU = 0x16
 	PDUTYPE_DATAPDU = 0x17
@@ -17,13 +20,13 @@ const /*PDUType*/ (
 )
 
 
-type PDUType2 byte
+type PduType2 byte
 
 /**
  * @see http=//msdn.microsoft.com/en-us/library/cc240577.aspx
  */
 const /*PDUType2*/ (
-	PDUTYPE2_UPDATE PDUType2 = 0x02
+	PDUTYPE2_UPDATE PduType2 = 0x02
 	PDUTYPE2_CONTROL = 0x14
 	PDUTYPE2_POINTER = 0x1B
 	PDUTYPE2_INPUT = 0x1C
@@ -337,10 +340,10 @@ ERRINFO_DECRYPTFAILED2= 0x00001195
  * @returns {type.Component}
  */
  type  ShareControlHeader struct {
-	 totalLength uint16
-	 pduType uint16
+	 TotalLength uint16
+	 PduType PDUType
 	 // for xp sp3 and deactiveallpdu PDUSource may not be present
-	 PDUSource uint16 //optional
+	 PduSource uint16 //optional
 
  }
 
@@ -348,12 +351,24 @@ func NewShareControlHeader(length uint16, pduType uint16, userId uint16) * Share
 	return &ShareControlHeader{length, pduType, userId}
 }
 
-func (c *ShareControlHeader) Write(writer *core.Writer) {
-	panic("Нереализовано")
+func (c *ShareControlHeader) Write(writer core.Writer) error {
+	return errors.New("Нереализовано")
 }
 
-func (c *ShareControlHeader) Read(reader *core.Reader) {
-	panic("Нереализовано")
+func (c *ShareControlHeader) Read(reader *core.Reader) error {
+	var err error
+	c.TotalLength, err = core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	t, err := core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	c.PduType = PDUType(t)
+	// for xp sp3 and deactiveallpdu PDUSource may not be present
+	c.PduSource, err = core.ReadUInt16LE(reader)
+	return nil
 }
 
 /**
@@ -366,26 +381,54 @@ func (c *ShareControlHeader) Read(reader *core.Reader) {
  */
 
 type SharedDataHeader struct {
-	shareId uint32
-	pad1 uint8
-	streamId StreamId
-	uncompressedLength uint16
-	pduType2 uint8
-	compressedType uint8
-	compressedLength uint16
+	ShareId uint32
+	Pad1 uint8
+	StreamId StreamId
+	UncompressedLength uint16
+	PduType2 PDUType2
+	CompressedType uint8
+	CompressedLength uint16
 }
 
-func NewSharedDataHeader(length uint16, pduType2 uint8, shareId uint32) *SharedDataHeader {
+func NewSharedDataHeader(length uint16, pduType2 PDUType2, shareId uint32) *SharedDataHeader {
 	return &SharedDataHeader{ shareId, 0, STREAM_LOW,length - 8,
 		pduType2, 0, 0}
 }
 
-func (c *SharedDataHeader) Write(writer *core.Writer) {
+func (c *SharedDataHeader) Write(writer *core.Writer) error {
 	panic("Нереализовано")
 }
 
-func (c *SharedDataHeader) Read(reader *core.Reader) {
-	panic("Нереализовано")
+func (c *SharedDataHeader) Read(reader *core.Reader) error {
+	var err error
+	c.ShareId, err = core.ReadUInt32LE(reader)
+	if err != nil {
+		return err
+	}
+	c.Pad1, err = core.ReadUInt8(reader)
+	if err != nil {
+		return err
+	}
+	t, err := core.ReadUInt8(reader)
+	if err != nil {
+		return err
+	}
+	c.StreamId = StreamId(t)
+	c.UncompressedLength, err = core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	t1, err := core.ReadUInt8(reader)
+	if err != nil {
+		return err
+	}
+	c.PduType2 = PDUType2(t1)
+	c.CompressedType, err = core.ReadUInt8(reader)
+	if err != nil {
+		return err
+	}
+	c.CompressedLength, err = core.ReadUInt16LE(reader)
+	return err
 }
 
 
@@ -398,59 +441,60 @@ func (c *SharedDataHeader) Read(reader *core.Reader) {
  */
 
 type DemandActivePDU struct {
-	core.Component
-	__PDUTYPE__  PDUType
-	shareId uint32
-	lengthSourceDescriptor uint16
-	lengthCombinedCapabilities uint16
-	sourceDescriptor []byte
-	numberCapabilities uint16
-	pad2Octets uint16
-	capabilitySets interface{}
-	sessionId uint32
+	ShareId uint32
+	SourceDescriptor []byte
+	CapabilitySets []*CapabilityWrapper
+	SessionId uint32
 }
 
-func NewDemandActivePDU(capabilities interface{}, opt  interface{}) *DemandActivePDU {
-	/*
-	var self {
-__PDUTYPE__ : PDUType.PDUTYPE_DEMANDACTIVEPDU,
-shareId uint32
-lengthSourceDescriptor uint16func() {
-return self.sourceDescriptor.size();
-}),
-lengthCombinedCapabilities uint16func() {
-return self.numberCapabilities.size() + self.pad2Octets.size() + self.capabilitySets.size();
-}),
-sourceDescriptor : new type.BinaryString(new Buffer('node-rdpjs', 'binary'), { readLength : new type.CallableValue(func() {
-return self.lengthSourceDescriptor.value
-}) }),
-numberCapabilities uint16func() {
-return self.capabilitySets.obj.length;
-}),
-pad2Octets uint16
-capabilitySets : capabilities || new type.Factory(func(s) {
-self.capabilitySets = new type.Component([]);
-for(var i = 0; i < self.numberCapabilities.value; i++) {
-self.capabilitySets.obj.push(caps.capability().read(s))
-}
-}),
-sessionId uint32
-};
-
-return new type.Component(self, opt);
-	 */
+func NewDemandActivePDU(capabilities []*CapabilityWrapper) *DemandActivePDU {
 	sd := []byte("node-rdpjs")
-	return &DemandActivePDU{ *core.NewComponent(opt), PDUTYPE_DEMANDACTIVEPDU, 0,
-		uint16(len(sd)), uint16(2 * 2) /*+ self.capabilitySets.size()*/,
-	sd, 0, 0, nil, 0}
+	return &DemandActivePDU{ 0,
+	sd, capabilities, 0}
 }
 
-func (c *DemandActivePDU) Write(writer *core.Writer) {
+func (c *DemandActivePDU) Write(writer *core.Writer) error {
 	panic("Нереализовано")
 }
 
-func (c *DemandActivePDU) Read(reader *core.Reader) {
-	panic("Нереализовано")
+func (c *DemandActivePDU) Read(reader *core.Reader) error {
+	var err error
+	c.ShareId, err = core.ReadUInt32LE(reader)
+	if err != nil {
+		return err
+	}
+	lengthSourceDescriptor, err := core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+
+	/*lengthCombinedCapabilities*/ _, err = core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	c.SourceDescriptor, err = core.AllocAndReadBytes(int(lengthSourceDescriptor), reader)
+	if err != nil {
+		return err
+	}
+
+	numberCapabilities , err := core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	var i uint16
+	for i =0 ; i < numberCapabilities; i++ {
+		t := NewCapabiltyWrapper()
+		err = t.Read(reader)
+		if err != nil {
+			return err
+		}
+		c.CapabilitySets = append(c.CapabilitySets, t)
+	}
+	c.SessionId , err = core.ReadUInt32LE(reader)
+	if err != nil {
+		return err
+	}
+	return err
 }
 
 /**
@@ -489,26 +533,125 @@ self.capabilitySets.obj.push(caps.capability().read(s))
 return new type.Component(self, opt);
 }*/
 
+type ConfirmActivePDU struct {
+	ShareId uint32
+	// OriginatorId uint16 //0x03EA, { constant : true }),
+	SourceDescriptor []byte
+	CapabilitySets []*CapabilityWrapper
+}
+
+func NewConfirmActivePDU(capabilities []*CapabilityWrapper) *ConfirmActivePDU {
+	/*
+	var self {
+__PDUTYPE__ : PDUType.PDUTYPE_DEMANDACTIVEPDU,
+shareId uint32
+lengthSourceDescriptor uint16func() {
+return self.sourceDescriptor.size();
+}),
+lengthCombinedCapabilities uint16func() {
+return self.numberCapabilities.size() + self.pad2Octets.size() + self.capabilitySets.size();
+}),
+sourceDescriptor : new type.BinaryString(new Buffer('node-rdpjs', 'binary'), { readLength : new type.CallableValue(func() {
+return self.lengthSourceDescriptor.value
+}) }),
+numberCapabilities uint16func() {
+return self.capabilitySets.obj.length;
+}),
+pad2Octets uint16
+capabilitySets : capabilities || new type.Factory(func(s) {
+self.capabilitySets = new type.Component([]);
+for(var i = 0; i < self.numberCapabilities.value; i++) {
+self.capabilitySets.obj.push(caps.capability().read(s))
+}
+}),
+sessionId uint32
+};
+
+return new type.Component(self, opt);
+	 */
+	sd := []byte("node-rdpjs")
+	return &ConfirmActivePDU{ 0, sd, nil}
+}
+
+func (c *DemandActivePDU) Write(writer *core.Writer) error {
+	panic("Нереализовано")
+}
+
+func (c *DemandActivePDU) Read(reader *core.Reader) error {
+	var err error
+	c.ShareId, err = core.ReadUInt32LE(reader)
+	if err != nil {
+		return err
+	}
+	lengthSourceDescriptor, err := core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	lengthCombinedCapabilities, err := core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	c.SourceDescriptor, err = core.AllocAndReadBytes(int(lengthSourceDescriptor), reader)
+	if err != nil {
+		return err
+	}
+
+	numberCapabilities , err := core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	var i uint16
+	for i =0 ; i < numberCapabilities; i++ {
+		t := NewCapabiltyWrapper()
+		err = t.Read(reader)
+		if err != nil {
+			return err
+		}
+		c.CapabilitySets = append(c.CapabilitySets, t)
+	}
+	c.SessionId , err = core.ReadUInt32LE(reader)
+	if err != nil {
+		return err
+	}
+	return err
+}
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240536.aspx
  * @param opt {object} type option
  * @returns {type.Component}
 */
 type DeactiveAllPDU struct {
-	core.Component
-	__PDUTYPE__  PDUType
-	shareId uint32
-	lengthSourceDescriptor uint16
-	sourceDescriptor []byte
+	ShareId uint32
+
+	SourceDescriptor []byte
 }
 
 func NewDeactiveAllPDU(opt interface{}) *DeactiveAllPDU{
-	r := &DeactiveAllPDU{*core.NewComponent(opt), PDUTYPE_DEACTIVATEALLPDU,
-	0, 0, nil}
-	r.sourceDescriptor = []byte("rdpy")
-	r.lengthSourceDescriptor = uint16(len(r.sourceDescriptor))
+	r := &DeactiveAllPDU{
+	0, 0, []byte("rdpy")}
 	return r
 }
+
+func (c *DeactiveAllPDU) Write(writer *core.Writer) error {
+	panic("Нереализовано")
+}
+
+func (c *DeactiveAllPDU) Read(reader *core.Reader) error {
+	var err error
+	c.ShareId, err = core.ReadUInt32LE(reader)
+	if err != nil {
+		return err
+	}
+	lengthSourceDescriptor, err := core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+
+	c.SourceDescriptor, err = core.AllocAndReadBytes(int(lengthSourceDescriptor), reader)
+
+	return err
+}
+
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240490.aspx
@@ -516,15 +659,26 @@ func NewDeactiveAllPDU(opt interface{}) *DeactiveAllPDU{
  * @returns {type.Component}
  */
 type SynchronizeDataPDU struct {
-	core.Component
-	__PDUTYPE2__  PDUType2
-	messageType uint16 //1, constant
-	targetUser uint16
+	MessageType uint16 //1, constant
+	TargetUser uint16
 }
 
 func NewSynchronizeDataPDU(targetUser uint16, opt interface{}) *SynchronizeDataPDU {
-	return &SynchronizeDataPDU{ *core.NewComponent(opt),PDUTYPE2_SYNCHRONIZE,
-	1, targetUser}
+	return &SynchronizeDataPDU{	1, targetUser}
+}
+
+func (c *SynchronizeDataPDU) Write(writer *core.Writer) error {
+	panic("Нереализовано")
+}
+
+func (c *SynchronizeDataPDU) Read(reader *core.Reader) error {
+	var err error
+	c.MessageType, err = core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	c.TargetUser, err = core.ReadUInt16LE(reader)
+	return err
 }
 
 /**
@@ -534,17 +688,32 @@ func NewSynchronizeDataPDU(targetUser uint16, opt interface{}) *SynchronizeDataP
  * @returns {type.Component}
 */
 type ControlDataPDU struct {
-	core.Component
-	__PDUTYPE2__  PDUType2
-	action uint16
-	grantId uint16
-	controlId uint32
+	Action Action
+	GrantId uint16
+	ControlId uint32
 }
 
-func controlDataPDU(action uint16, opt interface{}) *ControlDataPDU {
-	return &ControlDataPDU{*core.NewComponent(opt), PDUTYPE2_CONTROL,action, 0, 0}
+func controlDataPDU(action uint16) *ControlDataPDU {
+	return &ControlDataPDU{action, 0, 0}
 	}
 
+func (c *ControlDataPDU) Write(writer *core.Writer) error {
+	panic("Нереализовано")
+}
+
+func (c *ControlDataPDU) Read(reader *core.Reader) error {
+	var err error
+	c.Action, err = core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	c.GrantId, err = core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	c.ControlId, err = core.ReadUInt32LE(reader)
+	return err
+}
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240544.aspx
  * @param errorInfo {integer}
@@ -552,49 +721,95 @@ func controlDataPDU(action uint16, opt interface{}) *ControlDataPDU {
  * @returns {type.Component}
 */
 type ErrorInfoDataPDU struct {
-	core.Component
-	__PDUTYPE2__  PDUType2
-	errorInfo uint32
+	ErrorInfo uint32
 }
-func NewErrorInfoDataPDU(errorInfo uint32, opt interface{}) *ErrorInfoDataPDU {
-	return &ErrorInfoDataPDU{*core.NewComponent(opt), PDUTYPE2_SET_ERROR_INFO_PDU,errorInfo}
+func NewErrorInfoDataPDU(errorInfo uint32) *ErrorInfoDataPDU {
+	return &ErrorInfoDataPDU{errorInfo}
 }
 
+func (c *ErrorInfoDataPDU) Write(writer *core.Writer) error {
+	panic("Нереализовано")
+}
+
+func (c *ErrorInfoDataPDU) Read(reader *core.Reader) error {
+	var err error
+	c.ErrorInfo, err = core.ReadUInt32LE(reader)
+	return err
+}
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240498.aspx
  * @param opt {object} type option
  * @returns {type.Component}
 */
 type FontListDataPDU struct {
-	core.Component
-	__PDUTYPE2__  PDUType2
-	numberFonts uint16
-	totalNumFonts uint16
-	listFlags uint16
-	entrySize uint16
+	NumberFonts uint16
+	TotalNumFonts uint16
+	ListFlags uint16
+	EntrySize uint16
 }
 
-func NewFontListDataPDU(opt interface{}) *FontListDataPDU {
-	return &FontListDataPDU{*core.NewComponent(opt), PDUTYPE2_FONTLIST, 0, 0,
+func NewFontListDataPDU() *FontListDataPDU {
+	return &FontListDataPDU{ 0, 0,
 	0x0003, 0x0032}
 }
 
+func (c *FontListDataPDU) Write(writer *core.Writer) error {
+	panic("Нереализовано")
+}
+
+func (c *FontListDataPDU) Read(reader *core.Reader) error {
+	var err error
+	c.NumberFonts, err = core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	c.TotalNumFonts, err = core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	c.ListFlags, err = core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	c.EntrySize, err = core.ReadUInt32LE(reader)
+	return err
+}
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240498.aspx
  * @param opt {object} type option
  * @returns {type.Component}
 */
 type FontMapDataPDU struct {
-	core.Component
-	__PDUTYPE2__ PDUType2
-	numberEntries uint16
-	totalNumEntries uint16
-	mapFlags uint16
-	entrySize uint16
+	NumberEntries uint16
+	TotalNumEntries uint16
+	MapFlags uint16
+	EntrySize uint16
 }
 
-func NewFontMapDataPDU(opt interface{}) *FontMapDataPDU {
-	return &FontMapDataPDU{*core.NewComponent(opt), PDUTYPE2_FONTMAP, 0, 0, 0x0003, 0x0004}
+func NewFontMapDataPDU() *FontMapDataPDU {
+	return &FontMapDataPDU{0, 0, 0x0003, 0x0004}
+}
+
+func (c *FontMapDataPDU) Write(writer *core.Writer) error {
+	panic("Нереализовано")
+}
+
+func (c *FontMapDataPDU) Read(reader *core.Reader) error {
+	var err error
+	c.NumberEntries, err = core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	c.TotalNumEntries, err = core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	c.MapFlags, err = core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
+	}
+	c.EntrySize, err = core.ReadUInt32LE(reader)
+	return err
 }
 
 /**
@@ -614,8 +829,6 @@ type PersistentListEntry struct {
  * @returns {type.Component}
 */
 type PersistentListPDU struct {
-	core.Component
-	__PDUTYPE2__  PDUType2
 	numEntriesCache0 uint16
 	numEntriesCache1 uint16
 	numEntriesCache2 uint16
@@ -633,8 +846,8 @@ type PersistentListPDU struct {
 }
 
 
-func NewPersistentListPDU(entries []PersistentListEntry, opt interface{}) *PersistentListPDU {
-	return &PersistentListPDU{*core.NewComponent(opt), PDUTYPE2_BITMAPCACHE_PERSISTENT_LIST,
+func NewPersistentListPDU(entries []PersistentListEntry) *PersistentListPDU {
+	return &PersistentListPDU{
 0, 0, 0, 0, 0, 0,0, 0,
 0,0, 0, 0, 0, entries}
 }
@@ -651,15 +864,10 @@ self.entries.obj.push(persistentListEntry().read(s));
  */
 }
 
-type InputMessageBaseEvent struct {
-	core.Component
-	__INPUT_MESSAGE_TYPE__ InputMessageType
+type InputMessageBaseEvent interface {
+	GetType() InputMessageType
 }
 
-
-func NewInputMessageBaseEvent(t InputMessageType, opt interface{}) *InputMessageBaseEvent {
-	return &InputMessageBaseEvent{*core.NewComponent(opt), t}
-}
 
 /**
  * @see https://msdn.microsoft.com/en-us/library/cc240588.aspx
@@ -667,13 +875,12 @@ func NewInputMessageBaseEvent(t InputMessageType, opt interface{}) *InputMessage
  * @returns {type.Component}
 */
 type SynchronizeEvent struct {
-	InputMessageBaseEvent
 	pad2Octets             uint16
 	toggleFlags            uint32
 }
 
-func NewSynchronizeEvent(opt interface{}) *SynchronizeEvent {
-	return &SynchronizeEvent{*NewInputMessageBaseEvent(INPUT_EVENT_SYNC, opt), 0,0}
+func NewSynchronizeEvent() *SynchronizeEvent {
+	return &SynchronizeEvent{*NewInputMessageBaseEvent(INPUT_EVENT_SYNC), 0,0}
 }
 
 /**
@@ -688,8 +895,8 @@ type PointerEvent struct {
 	yPos uint16
 }
 
-func NewPointerEvent(opt interface{}) *PointerEvent {
-	return &PointerEvent{*NewInputMessageBaseEvent(INPUT_EVENT_MOUSE, opt),0, 0, 0}
+func NewPointerEvent() *PointerEvent {
+	return &PointerEvent{*NewInputMessageBaseEvent(INPUT_EVENT_MOUSE),0, 0, 0}
 }
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240584.aspx
@@ -698,13 +905,13 @@ func NewPointerEvent(opt interface{}) *PointerEvent {
 */
 type ScancodeKeyEvent struct {
 	InputMessageBaseEvent
-	keyboardFlags uint16
-	keyCode uint16
-	pad2Octets uint16
+	KeyboardFlags uint16
+	KeyCode uint16
+	Pad2Octets uint16
 }
 
-func NewScancodeKeyEvent(opt interface{}) *ScancodeKeyEvent {
-	return &ScancodeKeyEvent{*NewInputMessageBaseEvent(INPUT_EVENT_SCANCODE, opt), 0,0, 0}
+func NewScancodeKeyEvent() *ScancodeKeyEvent {
+	return &ScancodeKeyEvent{*NewInputMessageBaseEvent(INPUT_EVENT_SCANCODE), 0,0, 0}
 }
 
 /**
@@ -714,9 +921,9 @@ func NewScancodeKeyEvent(opt interface{}) *ScancodeKeyEvent {
 */
 type UnicodeKeyEvent struct {
 	InputMessageBaseEvent
-	keyboardFlags uint16
-	unicode uint16
-	pad2Octets uint16
+	KeyboardFlags uint16
+	Unicode uint16
+	Pad2Octets uint16
 }
 func NewUnicodeKeyEvent(opt interface{}) *UnicodeKeyEvent {
 	return &UnicodeKeyEvent{*NewInputMessageBaseEvent(INPUT_EVENT_UNICODE, opt), 0, 0, 0}
@@ -729,14 +936,13 @@ func NewUnicodeKeyEvent(opt interface{}) *UnicodeKeyEvent {
  * @returns {type.Component}
 */
 type SlowPathInputEvent struct {
-	core.Component
-	eventTime uint32
-	messageType uint16
-	slowPathInputData []*InputMessageBaseEvent
+	EventTime uint32
+	MessageType uint16
+	Data InputMessageBaseEvent
 }
 
 func NewSlowPathInputEvent(opt interface{}) *SlowPathInputEvent {
-	return &SlowPathInputEvent{*core.NewComponent(opt), 0, 0, nil}
+	return &SlowPathInputEvent{0, 0, nil}
 }
 
 /*
@@ -776,15 +982,13 @@ return new type.Component(self, opt);
  * @returns {type.Component}
 */
 type ClientInputEventPDU struct {
-	core.Component
-	__PDUTYPE2__ PDUType2
-	numEvents uint16
-	pad2Octets uint16
-	slowPathInputEvents []*SlowPathInputEvent
+	NumEvents uint16
+	Pad2Octets uint16
+	SlowPathInputEvents []*SlowPathInputEvent
 }
 
 func NewClientInputEventPDU(opt interface{}) *ClientInputEventPDU {
-	return &ClientInputEventPDU{*core.NewComponent(opt), PDUTYPE2_INPUT, 0,0, nil}
+	return &ClientInputEventPDU{ 0,0, nil}
 }
 /*
 func clientInputEventPDU(inputs, opt) {
@@ -810,12 +1014,10 @@ return new type.Component(self, opt);
  * @returns {type.Component}
 */
 type ShutdownRequestPDU struct {
-	core.Component
-	__PDUTYPE2__ PDUType2
 }
 
 func NewShutdownRequestPDU(opt interface{}) *ShutdownRequestPDU {
-	return &ShutdownRequestPDU{*core.NewComponent(opt), PDUTYPE2_SHUTDOWN_REQUEST}
+	return &ShutdownRequestPDU{}
 }
 
 /**
@@ -823,12 +1025,11 @@ func NewShutdownRequestPDU(opt interface{}) *ShutdownRequestPDU {
  * @returns {type.Component}
 */
 type ShutdownDeniedPDU struct {
-	core.Component
-	__PDUTYPE2__ PDUType2
+
 }
 
-func NewShutdownDeniedPDU(opt interface{}) *ShutdownRequestPDU {
-	return &ShutdownRequestPDU{*core.NewComponent(opt), PDUTYPE2_SHUTDOWN_DENIED}
+func NewShutdownDeniedPDU() *ShutdownRequestPDU {
+	return &ShutdownRequestPDU{}
 }
 
 /**
@@ -837,10 +1038,10 @@ func NewShutdownDeniedPDU(opt interface{}) *ShutdownRequestPDU {
  * @returns {type.Component}
  */
 type InclusiveRectangle struct {
-	left uint16
-	top uint16
-	right uint16
-	bottom uint16
+	Left uint16
+	Top uint16
+	Right uint16
+	Bottom uint16
 }
 
 /**
@@ -849,17 +1050,15 @@ type InclusiveRectangle struct {
  * @returns {type.Component}
 */
 type SupressOutputDataPDU struct {
-	core.Component
-	__PDUTYPE2__ PDUType2
-	allowDisplayUpdates uint8
-	pad3Octets_1 uint8
-	pad3Octets_2 uint8
-	pad3Octets_3 uint8
-	desktopRect *InclusiveRectangle
+	AllowDisplayUpdates uint8
+	Pad3Octets_1 uint8
+	Pad3Octets_2 uint8
+	Pad3Octets_3 uint8
+	DesktopRect *InclusiveRectangle
 }
 
 func NewSupressOutputDataPDU(opt interface{}) *SupressOutputDataPDU {
-	return &SupressOutputDataPDU{*core.NewComponent(opt), PDUTYPE2_SUPPRESS_OUTPUT,
+	return &SupressOutputDataPDU{
 	0, 0, 0, 0, nil}
 }
 
@@ -884,17 +1083,15 @@ return new type.Component(self, opt);
  * @returns {type.Component}
 */
 type RefreshRectPDU struct {
-	core.Component
-	__PDUTYPE2__ PDUType2
-	numberOfAreas uint8
-	pad3Octets_1 uint8
-	pad3Octets_2 uint8
-	pad3Octets_3 uint8
-	areasToRefresh []*InclusiveRectangle
+	NumberOfAreas uint8
+	Pad3Octets_1 uint8
+	Pad3Octets_2 uint8
+	Pad3Octets_3 uint8
+	AreasToRefresh []*InclusiveRectangle
 }
 
-func NewRefreshRectPDU(restangles []*InclusiveRectangle, opt interface{}) *RefreshRectPDU {
-	return &RefreshRectPDU{*core.NewComponent(opt), PDUTYPE2_SUPPRESS_OUTPUT,
+func NewRefreshRectPDU(restangles []*InclusiveRectangle) *RefreshRectPDU {
+	return &RefreshRectPDU{
 		uint8(len(restangles)), 0, 0, 0, restangles}
 }
 
@@ -922,17 +1119,16 @@ return new type.Component(self, opt);
  * @returns {type.Component}
 */
 type BitmapCompressedDataHeader struct {
-	core.Component
-	cbCompFirstRowSize uint16 // constant : true
+	CbCompFirstRowSize uint16 // constant : true
 	// compressed data size
-	cbCompMainBodySize uint16
-	cbScanWidth uint16
+	CbCompMainBodySize uint16
+	CbScanWidth uint16
 	// uncompressed data size
-	cbUncompressedSize uint16
+	CbUncompressedSize uint16
 }
 
 func NewBitmapCompressedDataHeader(opt interface{}) *BitmapCompressedDataHeader {
-	return &BitmapCompressedDataHeader{*core.NewComponent(opt),
+	return &BitmapCompressedDataHeader{
 		0x0000, 0, 0, 0}
 }
 
@@ -951,22 +1147,21 @@ func NewBitmapCompressedDataHeader(opt interface{}) *BitmapCompressedDataHeader 
  * @returns {type.Component}
  */
 type BitmapData struct {
-	core.Component
-	destLeft uint16
-	destTop uint16
-	destRight uint16
+	DestLeft uint16
+	DestTop uint16
+	DestRight uint16
 	destBottom uint16
-	width uint16
-	height uint16
-	bitsPerPixel uint16
-	flags uint16
-	bitmapLength uint16
-	bitmapComprHdr *BitmapCompressedDataHeader
-	bitmapDataStream []byte
+	Width uint16
+	Height uint16
+	BitsPerPixel uint16
+	Flags uint16
+	BitmapLength uint16
+	BitmapComprHdr *BitmapCompressedDataHeader
+	BitmapDataStream []byte
 }
 
-func NewBitmapData(opt interface{}) *BitmapData {
-	return &BitmapData{*core.NewComponent(opt), 0, 0, 0,0,0,0,0,
+func NewBitmapData() *BitmapData {
+	return &BitmapData{0, 0,0,0,0,0,
 	0,0, nil, nil}
 
 }
@@ -1008,10 +1203,8 @@ return new type.Component(self, opt);
  * @returns {type.Component}
  */
 type BitmapUpdateDataPDU struct {
-	core.Component
-	__UPDATE_TYPE__ UpdateType
-	numberRectangles uint16
-	rectangles []*BitmapData
+	NumberRectangles uint16
+	Rectangles []*BitmapData
 }
 
 /*
@@ -1041,12 +1234,11 @@ return new type.Component(self, opt);
 */
 
 type SynchronizeUpdateDataPDU struct {
-	core.Component
 	pad2Octets uint16
 }
 
 func NewSynchronizeUpdateDataPDU(opt interface{}) *SynchronizeUpdateDataPDU {
-	return &SynchronizeUpdateDataPDU{*core.NewComponent(opt), 0}
+	return &SynchronizeUpdateDataPDU{0}
 }
 
 /**
@@ -1057,14 +1249,12 @@ func NewSynchronizeUpdateDataPDU(opt interface{}) *SynchronizeUpdateDataPDU {
 */
 
 type UpdateDataPDU struct {
-	core.Component
-	__PDUTYPE2__  PDUType2
-	updateType uint16
-	updateData interface{}
+	Type uint16
+	Data interface{}
 }
 
-func NewUpdateDataPDU(opt interface{}) *UpdateDataPDU {
-	return &UpdateDataPDU{*core.NewComponent(opt), 0, 0, nil}
+func NewUpdateDataPDU() *UpdateDataPDU {
+	return &UpdateDataPDU{ 0, nil}
 }
 
  /*
@@ -1095,6 +1285,9 @@ log.debug('unknown updateDataPDU ' + self.updateType.value);
 
 return new type.Component(self, opt);
 }*/
+type DataPduData interface {
+	GetType2() PDUType2
+}
 
 /**
  * @param pduData {type.Component}
@@ -1103,14 +1296,16 @@ return new type.Component(self, opt);
  * @returns {type.Component}
 */
 type DataPDU struct {
-	core.Component
-	__PDUTYPE__ PDUType
-	shareDataHeader SharedDataHeader
-	pduData interface{}
+	ShareDataHeader SharedDataHeader
+	Data DataPduData
 }
 
-func NewDataPDU(opt interface{}) *DataPDU {
-	return &DataPDU{*core.NewComponent(opt), 0, *NewSharedDataHeader(0, 0, 0), nil}
+func NewDataPDU() *DataPDU {
+	return &DataPDU{ *NewSharedDataHeader(0, 0, 0), nil}
+}
+
+func CreateDataPDU(data DataPduData, shareId uint32) *DataPDU {
+	return &DataPDU{ *NewSharedDataHeader(0, data.GetType2(), shareId), data}
 }
 /*
 func dataPDU(pduData, shareId, opt) {
@@ -1177,18 +1372,25 @@ return new type.Component(self, opt);
 */
 /**
  * @param userId {integer}
- * @param pduMessage {type.Component} pdu message
+ * @param Message {type.Component} pdu message
  * @param opt {object} type option
  * @returns {type.Component}
 */
 type PDU struct {
-	core.Component
-	shareControlHeader ShareControlHeader
-	pduMessage interface{}
+	ShareControlHeader ShareControlHeader
+	Message interface{}
 }
 
-func NewPDU(opt interface{}) *PDU {
-	return &PDU{*core.NewComponent(opt), *NewShareControlHeader(0, 0, 0), nil}
+func NewEmptyPDU() *PDU {
+	return &PDU{ *NewShareControlHeader(0, 0, 0), nil}
+}
+
+func (c *PDU) Write(writer core.Writer) error {
+	return errors.New("not implemented")
+}
+
+func (c *PDU) Read(reader core.Reader) error {
+	return errors.New("not implemented")
 }
 
 /*func pdu(userId, pduMessage, opt) {
@@ -1235,14 +1437,12 @@ return new type.Component(self, opt);
 */
 
 type FastPathBitmapUpdateDataPDU struct {
-	core.Component
-	__FASTPATH_UPDATE_TYPE__ FastPathUpdateType
-	header uint16
-	numberRectangles uint16
-	rectangles []BitmapData
+	Header uint16
+	NumberRectangles uint16
+	Rectangles []BitmapData
 }
 func NewFastPathBitmapUpdateDataPDU(opt interface{}) *FastPathBitmapUpdateDataPDU {
-	return &FastPathBitmapUpdateDataPDU{*core.NewComponent(opt), FASTPATH_UPDATETYPE_BITMAP, 0, 0, nil}
+	return &FastPathBitmapUpdateDataPDU{ 0, 0, nil}
 }
 /*
 func fastPathBitmapUpdateDataPDU (opt) {
@@ -1270,15 +1470,14 @@ return new type.Component(self, opt);
  * @returns {type.Component}
 */
 type FastPathUpdatePDU struct {
-	core.Component
-	updateHeader uint8
-	compressionFlags uint8
-	size uint16
-	updateData interface {}
+	UpdateHeader uint8
+	CompressionFlags uint8
+	Size uint16
+	UpdateData interface {}
 }
 
-func NewFastPathUpdatePDU(opt interface{}) *FastPathUpdatePDU {
-	return &FastPathUpdatePDU{*core.NewComponent(opt), 0, 0, 0, nil}
+func NewFastPathUpdatePDU() *FastPathUpdatePDU {
+	return &FastPathUpdatePDU{0, 0, 0, nil}
 }
 /*
 func fastPathUpdatePDU (updateData, opt) {

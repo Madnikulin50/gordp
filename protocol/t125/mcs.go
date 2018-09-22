@@ -1,16 +1,20 @@
 package t125
 
+import (
+	"github.com/chuckpreslar/emission"
+	"../../core"
+)
 
-
-type Message uint8
+type McsMessage uint8
 
 const (
-MCS_TYPE_CONNECT_INITIAL = 0x65
+MCS_TYPE_CONNECT_INITIAL McsMessage = 0x65
 MCS_TYPE_CONNECT_RESPONSE = 0x66
 )
 
-type DomainMCSPDU uint16 (
-ERECT_DOMAIN_REQUEST = 1
+type McsDomainPDU uint16
+const (
+ERECT_DOMAIN_REQUEST McsDomainPDU = 1
 DISCONNECT_PROVIDER_ULTIMATUM = 8
 ATTACH_USER_REQUEST = 10
 ATTACH_USER_CONFIRM = 11
@@ -20,57 +24,86 @@ SEND_DATA_REQUEST = 25
 SEND_DATA_INDICATION = 26
 )
 
-type Channel uint16 (
-MCS_GLOBAL_CHANNEL = 1003
+type McsChannel uint16
+const (
+MCS_GLOBAL_CHANNEL McsChannel = 1003
 MCS_USERCHANNEL_BASE = 1001
 )
+
+
+type DomainParameters struct {
+	MaxChannelIds int `asn1:"tag:2"`
+	MaxUserIds int `asn1:"tag:2"`
+	MaxTokenIds int `asn1:"tag:2"`
+	NumPriorities int `asn1:"tag:2"`
+	MinThoughput int `asn1:"tag:2"`
+	MaxHeight int `asn1:"tag:2"`
+	MaxMCSPDUsize int `asn1:"tag:2"`
+	ProtocolVersion int `asn1:"tag:2"`
+}
 
 /**
  * @see http://www.itu.int/rec/T-REC-T.125-199802-I/en page 25
  * @returns {asn1.univ.Sequence}
  */
-function DomainParameters(maxChannelIds, maxUserIds, maxTokenIds,
-numPriorities, minThoughput, maxHeight, maxMCSPDUsize, protocolVersion) {
-return new asn1.univ.Sequence({
-maxChannelIds : new asn1.univ.Integer(maxChannelIds),
-maxUserIds : new asn1.univ.Integer(maxUserIds),
-maxTokenIds : new asn1.univ.Integer(maxTokenIds),
-numPriorities : new asn1.univ.Integer(numPriorities),
-minThoughput : new asn1.univ.Integer(minThoughput),
-maxHeight : new asn1.univ.Integer(maxHeight),
-maxMCSPDUsize : new asn1.univ.Integer(maxMCSPDUsize),
-protocolVersion : new asn1.univ.Integer(protocolVersion)
-});
+func NewDomainParameters(maxChannelIds int,
+	maxUserIds int,
+	maxTokenIds int,
+	numPriorities int,
+	minThoughput int,
+	maxHeight int,
+	maxMCSPDUsize int,
+	protocolVersion int) *DomainParameters {
+	return &DomainParameters{maxChannelIds, maxUserIds, maxTokenIds,
+	numPriorities, minThoughput, maxHeight, maxMCSPDUsize, protocolVersion}
 }
 
 /**
  * @see http://www.itu.int/rec/T-REC-T.125-199802-I/en page 25
  * @param userData {Buffer}
  * @returns {asn1.univ.Sequence}
- */
-function ConnectInitial (userData) {
-return new asn1.univ.Sequence({
-callingDomainSelector : new asn1.univ.OctetString(new Buffer('\x01', 'binary')),
-calledDomainSelector : new asn1.univ.OctetString(new Buffer('\x01', 'binary')),
-upwardFlag : new asn1.univ.Boolean(true),
-targetParameters : DomainParameters(34, 2, 0, 1, 0, 1, 0xffff, 2),
-minimumParameters : DomainParameters(1, 1, 1, 1, 0, 1, 0x420, 2),
-maximumParameters : DomainParameters(0xffff, 0xfc17, 0xffff, 1, 0, 1, 0xffff, 2),
-userData : new asn1.univ.OctetString(userData)
-}).implicitTag(new asn1.spec.Asn1Tag(asn1.spec.TagClass.Application, asn1.spec.TagFormat.Constructed, 101));
+*/
+type ConnectInitial struct {
+	CallingDomainSelector []byte `asn1:"tag:4"`
+	CalledDomainSelector []byte `asn1:"tag:4"`
+	UpwardFlag bool
+	TargetParameters DomainParameters
+	MinimumParameters DomainParameters
+	MaximumParameters DomainParameters
+	UserData []byte `asn1:"application, tag:101"`
+}
+
+func NewConnectInitial (userData []byte) *ConnectInitial{
+	return &ConnectInitial{[]byte{0x1},
+	[]byte{0x1},
+	false,
+	*NewDomainParameters(34, 2, 0, 1, 0, 1, 0xffff, 2),
+	*NewDomainParameters(1, 1, 1, 1, 0, 1, 0x420, 2),
+	*NewDomainParameters(0xffff, 0xfc17, 0xffff, 1, 0, 1, 0xffff, 2),
+	userData}
+		/*userData : new asn1.univ.OctetString(userData)
+}).implicitTag(new asn1.spec.Asn1Tag(asn1.spec.TagClass.Application, asn1.spec.TagFormat.Constructed, 101));*/
 }
 
 /**
  * @see http://www.itu.int/rec/T-REC-T.125-199802-I/en page 25
  * @returns {asn1.univ.Sequence}
- */
-function ConnectResponse (userData) {
-return new asn1.univ.Sequence({
-result : new asn1.univ.Enumerate(0),
-calledConnectId : new asn1.univ.Integer(0),
-domainParameters : DomainParameters(22, 3, 0, 1, 0, 1,0xfff8, 2),
-userData : new asn1.univ.OctetString(userData)
-}).implicitTag(new asn1.spec.Asn1Tag(asn1.spec.TagClass.Application, asn1.spec.TagFormat.Constructed, 102));
+*/
+
+type ConnectResponse struct {
+	result int `asn1:"tag:10"`
+	calledConnectId int
+	domainParameters DomainParameters
+	userData []byte `asn1:"tag:10"`
+	//.implicitTag(new asn1.spec.Asn1Tag(asn1.spec.TagClass.Application, asn1.spec.TagFormat.Constructed, 102));
+}
+
+
+func NewConnectResponse (userData [] byte) *ConnectResponse{
+	return &ConnectResponse{0,
+		0,
+		*NewDomainParameters(22, 3, 0, 1, 0, 1, 0xfff8, 2),
+		userData}
 }
 
 /**
@@ -79,9 +112,8 @@ userData : new asn1.univ.OctetString(userData)
  * @param options {integer}
  * @returns {type.UInt8} headers
  */
-function writeMCSPDUHeader(mcsPdu, options) {
-options = options || 0;
-return new type.UInt8((mcsPdu << 2) | options);
+func writeMCSPDUHeader(mcsPdu McsDomainPDU, options uint8, w core.Writer) {
+	core.WriteUInt8((uint8(mcsPdu) << 2) | options, w)
 }
 
 /**
@@ -90,8 +122,8 @@ return new type.UInt8((mcsPdu << 2) | options);
  * @param mcsPdu
  * @returns {Boolean}
  */
-function readMCSPDUHeader(opcode, mcsPdu) {
-return (opcode >> 2) === mcsPdu;
+func readMCSPDUHeader(opcode, mcsPdu) {
+	return (opcode >> 2) == mcsPdu;
 }
 
 /**
@@ -99,39 +131,50 @@ return (opcode >> 2) === mcsPdu;
  * @param transport {events.EventEmitter} transport layer listen (connect, data) events
  * @param recvOpCode {DomainMCSPDU} opcode use in receive automata
  * @param sendOpCode {DomainMCSPDU} opcode use to send message
- */
-function MCS(transport, recvOpCode, sendOpCode) {
-this.transport = transport;
-this.recvOpCode = recvOpCode;
-this.sendOpCode = sendOpCode;
-this.channels = [{id : Channel.MCS_GLOBAL_CHANNEL, name : 'global'}];
-this.channels.find = function(callback) {
-for(var i in this) {
-if(callback(this[i])) return this[i];
-};
-};
+*/
 
-// bind events
-var self = this;
-this.transport.on('close', function () {
-self.emit('close');
-}).on('error', function (err) {
-self.emit('error', err);
-});
+type McsChannelInfo struct {
+	id McsChannel
+	name string
 }
 
-//inherit from Layer
-inherits(MCS, events.EventEmitter);
+type Mcs struct {
+	emission.Emitter
+	transport core.Transport
+	recvOpCode McsDomainPDU
+	sendOpCode McsDomainPDU
+	channels []McsChannelInfo
+}
+
+func NewMcs(transport core.Transport, recvOpCode McsDomainPDU, sendOpCode McsDomainPDU) *Mcs{
+	mcs := Mcs{*emission.NewEmitter(), transport, recvOpCode, sendOpCode,
+	[]McsChannelInfo{{MCS_GLOBAL_CHANNEL, "global"}}}
+	mcs.transport.GetEvents().On("close", func() {
+		mcs.Emitter.Emit("close")
+	})
+	mcs.transport.GetEvents().On("error", func(err interface{}) {
+		mcs.Emitter.Emit("error", err)
+	})
+	return &mcs
+}
 
 /**
  * Send message to a specific channel
  * @param channelName {string} name of channel
  * @param data {type.*} message to send
- */
-MCS.prototype.send = function(channelName, data) {
-var channelId = this.channels.find(function(element) {
-if (element.name === channelName) return true;
-}).id;
+*/
+func (mcs *Mcs) Send(channelName string, data []byte) error {
+	var channelId McsChannel = 0
+	for _, channelInfo := range mcs.channels {
+		if channelInfo.name == channelName {
+			channelId = channelInfo.id
+			break
+		}
+	}
+
+	writeMCSPDUHeader(mcs.sendOpCode, 0, mcs.transport)
+	WriteInteger16(mcs.userId, mcs.transport, MCS_USERCHANNEL_BASE)
+	mcs.transport.Send()
 
 this.transport.send(new type.Component([
 writeMCSPDUHeader(this.sendOpCode),
@@ -178,14 +221,20 @@ this.emit(channelName, s);
  * @param transport {event.EventEmitter} bind connect and data events
  * @returns
  */
-function Client(transport) {
-MCS.call(this, transport, DomainMCSPDU.SEND_DATA_INDICATION, DomainMCSPDU.SEND_DATA_REQUEST);
+type McsClient struct {
+	Mcs
+	channelsConnected int,
+	clientCoreData,
+	clientNetworkData,
+	clientSecurityData,
+	serverCoreData,
+	serverSecurityData,
+	serverNetworkData
 
-// channel context automata
-this.channelsConnected = 0;
+}
 
-// init gcc information
-this.clientCoreData = gcc.clientCoreData();
+func NewMcsClient(transport core.Transport) {
+	client := McsClient{ NewMcs(transport,SEND_DATA_INDICATION, SEND_DATA_REQUEST), 0, gcc.clientCoreData();
 this.clientNetworkData = gcc.clientNetworkData(new type.Component([]));
 this.clientSecurityData = gcc.clientSecurityData();
 
@@ -385,84 +434,3 @@ self.recvChannelJoinConfirm(s);
 });
 };
 
-/**
- * Server side of MCS layer
- * @param transport
- */
-function Server (transport) {
-MCS.call(this, transport, DomainMCSPDU.SEND_DATA_REQUEST, DomainMCSPDU.SEND_DATA_INDICATION);
-
-// must be readed from protocol
-this.clientCoreData = null;
-this.clientNetworkData = null;
-this.clientSecurityData = null;
-
-// init gcc information
-this.serverCoreData = gcc.serverCoreData();
-this.serverSecurityData = gcc.serverSecurityData();
-this.serverNetworkData = gcc.serverNetworkData(new type.Component([]));
-
-var self = this;
-this.transport.on('connect', function (selectedProtocol) {
-self.serverCoreData.obj.clientRequestedProtocol.value = selectedProtocol;
-}).once('data', function (s) {
-self.recvConnectInitial(s);
-});
-}
-
-inherits(Server, MCS);
-
-/**
- * First state of server automata
- * @param s {type.Stream}
- */
-Server.prototype.recvConnectInitial = function (s) {
-var userData = new type.Stream(ConnectInitial().decode(s, asn1.ber).value.userData.value);
-var clientSettings = gcc.readConferenceCreateRequest(userData);
-// record server gcc block
-for(var i in clientSettings) {
-if(!clientSettings[i].obj) {
-continue;
-}
-switch(clientSettings[i].obj.__TYPE__) {
-case gcc.MessageType.CS_CORE:
-this.clientCoreData = clientSettings[i];
-break;
-case gcc.MessageType.CS_SECURITY:
-this.clientSecurityData = clientSettings[i];
-break;
-case gcc.MessageType.CS_NET:
-this.clientNetworkData = clientSettings[i];
-for (var i = 0; i < this.clientNetworkData.obj.channelCount.value; i++) {
-this.serverNetworkData.obj.channelIdArray.obj.push(new type.UInt16Le( i + 1 + Channel.MCS_GLOBAL_CHANNEL));
-}
-break;
-default:
-log.debug('unhandle client gcc block : ' + clientSettings[i].obj.__TYPE__);
-}
-}
-
-this.sendConnectResponse();
-};
-
-/**
- * State 2 in mcs server connetion automata
- */
-Server.prototype.sendConnectResponse = function () {
-var ccReq = gcc.writeConferenceCreateResponse(new type.Component([
-gcc.block(this.serverCoreData),
-gcc.block(this.serverSecurityData),
-gcc.block(this.serverNetworkData),
-])).toStream().getValue();
-
-this.transport.send(ConnectResponse(ccReq).encode(asn1.ber));
-
-};
-
-/**
- * Module exports
- */
-module.exports = {
-Client : Client,
-Server : Server
-};

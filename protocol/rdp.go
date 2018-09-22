@@ -3,8 +3,9 @@ package protocol
 import (
 	"net"
 	"../core"
+	"./x224"
 )
-/
+
 /**
  * Main RDP module
  */
@@ -14,7 +15,7 @@ type RdpClient struct {
 	bufferLayer core.BufferLayer
 	tpkt *TPKT
 	x224 *X224Client
-	mcs *MCSClient
+	mcs * MCSClient
 
 
 
@@ -24,11 +25,11 @@ func NewRdpClient(config *map[string]string) {
 	client := RdpClient{}
 	client.config = config || make(map[string]string)
 	client.connected = false
-	client.bufferLayer = core.NewBufferLayer(nil)
+	client.bufferLayer = core.NewLayer(nil)
 	client.tpkt = NewTPKT(client.bufferLayer)
-	client.x224 = new NewX224Client(this.tpkt)
-	client.mcs = new t125.mcs.Client(this.x224);
-	client.sec = new pdu.sec.Client(this.mcs, this.tpkt);
+	client.x224 = new x224.NewClient(client.tpkt)
+	client.mcs = new t125.mcs.Client(client.x224);
+	client.sec = new pdu.sec.Client(client.mcs, client.tpkt);
 	client.global = new pdu.global.Client(this.sec, this.sec);
 
 // config log level

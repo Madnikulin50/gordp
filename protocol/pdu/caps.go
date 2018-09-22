@@ -3,6 +3,7 @@ package pdu
 import (
 	"../../core"
 	"log"
+	"errors"
 )
 
 /**
@@ -202,6 +203,10 @@ SOUND_NONE = 0x0000
 SOUND_BEEPS_FLAG = 0x0001
 )
 
+type Capability interface {
+	GetType() CapsType
+}
+
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240549.aspx
  * @param opt {object} type options
@@ -209,25 +214,27 @@ SOUND_BEEPS_FLAG = 0x0001
  */
 
 type GeneralCapability struct {
-	core.Component
-	__TYPE__ CapsType
-	osMajorType uint16
-	osMinorType uint16
-	protocolVersion uint16 "0x0200, {constant : true})'"
-	pad2octetsA uint16
-	generalCompressionTypes uint16 "(0, {constant : true})"
-	extraFlags uint16
-	updateCapabilityFlag uint16 "(0, {constant : true})"
-	remoteUnshareFlag uint16 "(0, {constant : true})"
-	generalCompressionLevel uint16 "(0, {constant : true})"
-	refreshRectSupport uint8
-	suppressOutputSupport uint8
+	OsMajorType uint16
+	OsMinorType uint16
+	ProtocolVersion uint16 "0x0200, {constant : true})'"
+	//pad uint16
+	GeneralCompressionTypes uint16 "(0, {constant : true})"
+	ExtraFlags uint16
+	UpdateCapabilityFlag uint16 "(0, {constant : true})"
+	RemoteUnshareFlag uint16 "(0, {constant : true})"
+	GeneralCompressionLevel uint16 "(0, {constant : true})"
+	RefreshRectSupport uint8
+	SuppressOutputSupport uint8
 }
 
-func NewGeneralCapability(opt interface{}) *GeneralCapability {
-	return &GeneralCapability{ *core.NewComponent(opt), CAPSTYPE_GENERAL, 0,0,
-	0x0200, 0, 0, 0, 0, 0,
+func NewGeneralCapability() *GeneralCapability {
+	return &GeneralCapability{0,0,
+	0x0200, 0, 0, 0, 0,
 	0, 0, 0}
+}
+
+func (caps *GeneralCapability) GetType() CapsType {
+	 return CAPSTYPE_GENERAL
 }
 
 /**
@@ -236,27 +243,29 @@ func NewGeneralCapability(opt interface{}) *GeneralCapability {
  * @returns {type.Component}
  */
 type  BitmapCapability struct {
-	core.Component
-	__TYPE__ CapsType
 	preferredBitsPerPixel uint16
 	receive1BitPerPixel uint16
 	receive4BitsPerPixel uint16
 	receive8BitsPerPixel uint16
 	desktopWidth uint16
 	desktopHeight uint16
-	pad2octets uint16
+	// pad2octets uint16
 	desktopResizeFlag uint16
 	bitmapCompressionFlag uint16
 	highColorFlags uint8
 	drawingFlags uint8
 	multipleRectangleSupport uint16
-	pad2octetsB uint16
+	// pad2octetsB uint16
 }
 
-func NewBitmapCapability(opt interface{}) *BitmapCapability {
-	return &BitmapCapability{ *core.NewComponent(opt), CAPSTYPE_BITMAP,0,
+func NewBitmapCapability() *BitmapCapability {
+	return &BitmapCapability{ 0,
 	0x0001, 0x0001, 0x0001, 0, 0,
-	0,0, 0x0001, 0, 0, 0x0001, 0}
+	0, 0x0001, 0, 0, 0x0001}
+}
+
+func (caps *GeneralCapability) GetType() CapsType {
+	 return CAPSTYPE_BITMAP
 }
 
 /**
@@ -266,13 +275,11 @@ func NewBitmapCapability(opt interface{}) *BitmapCapability {
  * @returns {type.Component}
 */
 type OrderCapability struct {
-	core.Component
-	__TYPE__ CapsType
 	terminalDescriptor [16]byte
-	pad4octetsA uint32
+	// pad4octetsA uint32
 	desktopSaveXGranularity uint16
 	desktopSaveYGranularity uint16
-	pad2octetsA uint16
+	// pad2octetsA uint16
 	maximumOrderLevel uint16
 	numberFonts uint16
 	orderFlags OrderFlag
@@ -281,22 +288,27 @@ type OrderCapability struct {
 	orderSupportExFlags uint16
 	pad4octetsB uint32
 	desktopSaveSize uint32
-	pad2octetsC uint16
-	pad2octetsD uint16
+	// pad2octetsC uint16
+	// pad2octetsD uint16
 	textANSICodePage uint16
-	pad2octetsE uint16
+	// pad2octetsE uint16
 }
 
-func NewOrderCapability(orders *[32]byte, opt interface{}) *OrderCapability {
+func NewOrderCapability(orders *[32]byte) *OrderCapability {
 	if orders != nil && len(orders) != 32 {
 		panic ("NODE_RDP_PROTOCOL_PDU_CAPS_BAD_ORDERS_SIZE")
 	}
-	r := &OrderCapability{ Component: *core.NewComponent(opt), __TYPE__: CAPSTYPE_ORDER,
-		pad4octetsA: 0, desktopSaveXGranularity: 1, desktopSaveYGranularity: 20, maximumOrderLevel:1,
+	r := &OrderCapability{desktopSaveXGranularity: 1, desktopSaveYGranularity: 20, maximumOrderLevel:1,
 		orderFlags: NEGOTIATEORDERSUPPORT, desktopSaveSize: 480 * 480}
 	r.orderSupport = *orders
 	return r
 }
+
+func (caps *OrderCapability) GetType() CapsType {
+	return CAPSTYPE_ORDER
+}
+
+/**
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240559.aspx
@@ -304,8 +316,6 @@ func NewOrderCapability(orders *[32]byte, opt interface{}) *OrderCapability {
  * @returns {type.Component}
 */
 type BitmapCacheCapability struct {
-	core.Component
-	__TYPE__ CapsType
 	pad1 uint32
 	pad2 uint32
 	pad3 uint32
@@ -320,9 +330,14 @@ type BitmapCacheCapability struct {
 	cache2MaximumCellSize uint16
 }
 
-func NewBitmapCacheCapability(opt interface {}) *BitmapCacheCapability {
-	return &BitmapCacheCapability{
-		Component: *core.NewComponent(opt), __TYPE__: CAPSTYPE_BITMAPCACHE}
+
+
+func NewBitmapCacheCapability() *BitmapCacheCapability {
+	return &BitmapCacheCapability{}
+}
+
+func (caps *OrderCapability) GetType() CapsType {
+	return CAPSTYPE_BITMAPCACHE
 }
 
 /**
@@ -332,20 +347,23 @@ func NewBitmapCacheCapability(opt interface {}) *BitmapCacheCapability {
  * @returns {type.Component}
  */
 type  PointerCapability struct {
-	core.Component
-	__TYPE__ CapsType
 	colorPointerFlag uint16
 	colorPointerCacheSize uint16
 	//old version of rdp doesn't support ...
 	pointerCacheSize uint16
 };
 
-func NewPointerCapability(isServer bool, opt interface{}) *PointerCapability {
+func NewPointerCapability(isServer bool) *PointerCapability {
 
-	return &PointerCapability{*core.NewComponent(opt), CAPSTYPE_POINTER, 0, 20,
+	return &PointerCapability{ 0, 20,
 //old version of rdp doesn't support ...
 0 /*{conditional : function() { return isServer || false; }}*/}
 }
+
+func (caps *OrderCapability) GetType() CapsType {
+	return CAPSTYPE_POINTER
+}
+
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240563.aspx
@@ -354,10 +372,8 @@ func NewPointerCapability(isServer bool, opt interface{}) *PointerCapability {
 */
 
 type InputCapability struct {
-	core.Component
-	__TYPE__ CapsType
 	inputFlags uint16
-	pad2octetsA uint16
+	//pad2octetsA uint16
 	// same value as gcc.ClientCoreSettings.kbdLayout
 	keyboardLayout uint32
 	// same value as gcc.ClientCoreSettings.keyboardType
@@ -371,9 +387,12 @@ type InputCapability struct {
 };
 
 
-func NewInputCapability(opt interface{}) *PointerCapability {
-	return &PointerCapability{
-		Component: *core.NewComponent(opt), __TYPE__: CAPSTYPE_INPUT}
+func NewInputCapability() *InputCapability {
+	return &PointerCapability{}
+}
+
+func (caps *InputCapability) GetType() CapsType {
+	return CAPSTYPE_INPUT
 }
 
 /**
@@ -382,13 +401,17 @@ func NewInputCapability(opt interface{}) *PointerCapability {
  * @returns {type.Component}
 */
 type BrushCapability struct {
-	core.Component
-	__TYPE__ CapsType
 	brushSupportLevel BrushSupport
 }
-func NewBrushCapability(opt interface{}) *BrushCapability {
-	return &BrushCapability{*core.NewComponent(opt), CAPSTYPE_BRUSH,BRUSH_DEFAULT}
+func NewBrushCapability() *BrushCapability {
+	return &BrushCapability{BRUSH_DEFAULT}
 }
+
+
+func (caps *BrushCapability) GetType() CapsType {
+	return CAPSTYPE_BRUSH
+}
+
 
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240566.aspx
@@ -426,21 +449,22 @@ return new type.Component(self, opt);
 */
 
 type GlyphCapability struct {
-	core.Component
-	__TYPE__ CapsType
-	glyphCache [10] cacheEntry
-	fragCache uint32
-	glyphSupportLevel GlyphSupport
-	pad2octets uint16
+	GlyphCache [10] cacheEntry
+	FragCache uint32
+	GlyphSupportLevel GlyphSupport
+	// pad2octets uint16
 }
 
-func NewGlyphCapability(entries *[10] cacheEntry, opt interface{}) *GlyphCapability{
-	c := &GlyphCapability{ Component: *core.NewComponent(opt), __TYPE__:CAPSTYPE_GLYPHCACHE,
-		glyphSupportLevel: GLYPH_SUPPORT_NONE}
+func NewGlyphCapability(entries *[10] cacheEntry) *GlyphCapability{
+	c := &GlyphCapability{ GlyphSupportLevel: GLYPH_SUPPORT_NONE}
 	if entries != nil {
-		c.glyphCache = *entries
+		c.GlyphCache = *entries
 	}
 	return c;
+}
+
+func (caps *GlyphCapability) GetType() CapsType {
+	return CAPSTYPE_GLYPHCACHE
 }
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240550.aspx
@@ -448,16 +472,17 @@ func NewGlyphCapability(entries *[10] cacheEntry, opt interface{}) *GlyphCapabil
  * @returns {type.Component}
 */
 type OffscreenBitmapCacheCapability struct {
-	core.Component
-	__TYPE__              CapsType
-	offscreenSupportLevel OffscreenSupportLevel
-	offscreenCacheSize    uint16
-	offscreenCacheEntries uint16
+	OffscreenSupportLevel OffscreenSupportLevel
+	OffscreenCacheSize    uint16
+	OffscreenCacheEntries uint16
 }
 
-func NewOffscreenBitmapCacheCapability(opt interface{}) *OffscreenBitmapCacheCapability {
-	return &OffscreenBitmapCacheCapability{ Component: *core.NewComponent(opt), __TYPE__:CAPSTYPE_OFFSCREENCACHE,
-		offscreenSupportLevel: OSL_FALSE}
+func NewOffscreenBitmapCacheCapability() *OffscreenBitmapCacheCapability {
+	return &OffscreenBitmapCacheCapability{ OffscreenSupportLevel: OSL_FALSE}
+}
+
+func (caps *OffscreenBitmapCacheCapability) GetType() CapsType {
+	return CAPSTYPE_OFFSCREENCACHE
 }
 
 /**
@@ -466,14 +491,15 @@ func NewOffscreenBitmapCacheCapability(opt interface{}) *OffscreenBitmapCacheCap
  * @returns {type.Component}
 */
 type VirtualChannelCapability struct {
-	core.Component
-	__TYPE__ CapsType
-	flags VirtualChannelCompressionFlag
+	Flags VirtualChannelCompressionFlag
 	VCChunkSize uint32 "optional"
 }
 
-func NewVirtualChannelCapability(opt interface{}) *VirtualChannelCapability {
-	return &VirtualChannelCapability{*core.NewComponent(opt), CAPSTYPE_VIRTUALCHANNEL, VCCAPS_NO_COMPR, 0}
+func NewVirtualChannelCapability() *VirtualChannelCapability {
+	return &VirtualChannelCapability{ VCCAPS_NO_COMPR, 0}
+}
+func (caps *VirtualChannelCapability) GetType() CapsType {
+	return CAPSTYPE_VIRTUALCHANNEL
 }
 
 /**
@@ -482,34 +508,37 @@ func NewVirtualChannelCapability(opt interface{}) *VirtualChannelCapability {
  * @returns {type.Component}
  */
 type SoundCapability struct {
-	core.Component
-	__TYPE__ CapsType
 	soundFlags SoundFlag
-	pad2octetsA uint16
+	// pad2octetsA uint16
 }
 
-func NewSoundCapability(opt interface{}) *SoundCapability {
-	return &SoundCapability{*core.NewComponent(opt), CAPSTYPE_SOUND, SOUND_NONE, 0}
+func NewSoundCapability() *SoundCapability {
+	return &SoundCapability{SOUND_NONE}
 }
 
+func (caps *SoundCapability) GetType() CapsType {
+	return CAPSTYPE_SOUND
+}
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240568.aspx
  * @param opt {object} type options
  * @returns {type.Component}
 */
 type ControlCapability struct {
-	core.Component
-	__TYPE__ CapsType
-	controlFlags uint16
-	remoteDetachFlag uint16
-	controlInterest uint16
-	detachInterest uint16
+	ControlFlags uint16
+	RemoteDetachFlag uint16
+	ControlInterest uint16
+	DetachInterest uint16
 }
 
 
-func NewControlCapability(opt interface{}) *ControlCapability {
-	return &ControlCapability{*core.NewComponent(opt), CAPSTYPE_CONTROL, 0,
+func NewControlCapability() *ControlCapability {
+	return &ControlCapability{0,
 	0,0x0002, 0x0002}
+}
+
+func (caps *ControlCapability) GetType() CapsType {
+	return CAPSTYPE_CONTROL
 }
 
 /**
@@ -518,31 +547,34 @@ func NewControlCapability(opt interface{}) *ControlCapability {
  * @returns {type.Component}
  */
 type WindowActivationCapability struct {
-	core.Component
-	__TYPE__ CapsType
 	helpKeyFlag uint16
 	helpKeyIndexFlag uint16
 	helpExtendedKeyFlag uint16
 	windowManagerKeyFlag uint16
 }
-func NewWindowActivationCapability(opt interface{}) *WindowActivationCapability {
-	return &WindowActivationCapability{Component: *core.NewComponent(opt), __TYPE__: CAPSTYPE_ACTIVATION}
+func NewWindowActivationCapability() *WindowActivationCapability {
+	return &WindowActivationCapability{}
 }
 
+func (caps *WindowActivationCapability) GetType() CapsType {
+	return CAPSTYPE_ACTIVATION
+}
 /**
  * @see http://msdn.microsoft.com/en-us/library/cc240571.aspx
  * @param opt {object} type options
  * @returns {type.Component}
  */
 type FontCapability struct {
-	core.Component
-	__TYPE__  CapsType
-	fontSupportFlags uint16
-	pad2octets uint16
+	FontSupportFlags uint16
+	// pad2octets uint16
 }
 
-func NewFontCapability(opt interface{}) *FontCapability {
-	return &FontCapability{ *core.NewComponent(opt), CAPSTYPE_FONT, 0x0001, 0}
+func NewFontCapability() *FontCapability {
+	return &FontCapability{ 0x0001}
+}
+
+func (caps *WindowActivationCapability) GetType() CapsType {
+	return CAPSTYPE_FONT
 }
 
 /**
@@ -551,14 +583,16 @@ func NewFontCapability(opt interface{}) *FontCapability {
  * @returns {type.Component}
  */
 type ColorCacheCapability struct {
-	core.Component
-	__TYPE__  CapsType
 	colorTableCacheSize uint16
-	pad2octets uint16
+	// pad2octets uint16
 }
 
-func NewColorCacheCapability(opt interface{}) *ColorCacheCapability {
-	return &ColorCacheCapability{*core.NewComponent(opt), CAPSTYPE_COLORCACHE,0x0006, 0}
+func NewColorCacheCapability() *ColorCacheCapability {
+	return &ColorCacheCapability{0x0006}
+}
+
+func (caps *ColorCacheCapability) GetType() CapsType {
+	return CAPSTYPE_COLORCACHE
 }
 
 /**
@@ -567,14 +601,17 @@ func NewColorCacheCapability(opt interface{}) *ColorCacheCapability {
  * @returns {type.Component}
 */
 type ShareCapability struct {
-	core.Component
-	__TYPE__  CapsType
-	nodeId uint16
-	pad2octets uint16
+	NodeId uint16
+	// pad2octets uint16
 }
 
-func NewShareCapability(opt interface{}) *ShareCapability {
-	return &ShareCapability{*core.NewComponent(opt), CAPSTYPE_SHARE, 0, 0}
+func NewShareCapability() *ShareCapability {
+	return &ShareCapability{0}
+}
+
+
+func (caps *ColorCacheCapability) GetType() CapsType {
+	return CAPSTYPE_SHARE
 }
 
 /**
@@ -583,13 +620,15 @@ func NewShareCapability(opt interface{}) *ShareCapability {
  * @returns {type.Component}
  */
 type MultiFragmentUpdate struct {
-	core.Component
-	__TYPE__       CapsType
 	MaxRequestSize uint32
 }
 
-func NewMultiFragmentUpdate(opt interface{}) *MultiFragmentUpdate {
-	return &MultiFragmentUpdate{*core.NewComponent(opt), CAPSETTYPE_MULTIFRAGMENTUPDATE, 0}
+func NewMultiFragmentUpdate() *MultiFragmentUpdate {
+	return &MultiFragmentUpdate{0}
+}
+
+func (caps *ColorCacheCapability) GetType() CapsType {
+	return CAPSETTYPE_MULTIFRAGMENTUPDATE
 }
 
 /**
@@ -599,83 +638,70 @@ func NewMultiFragmentUpdate(opt interface{}) *MultiFragmentUpdate {
  * @param opt {object} type options
  * @returns {type.Component}
  */
-type CapabilitySet struct {
-	core.Component
-	capabilitySetType uint16
-	lengthCapability uint16
-	capability interface{}
+type CapabilityWrapper struct {
+	CapabilitySetType uint16
+	LengthCapability uint16
+	Capability interface{}
 }
 
-func (c *CapabilitySet) Write(writer *core.Writer) {
-	panic("Нереализовано")
+func NewCapabiltyWrapper() *CapabilityWrapper {
+	return &CapabilityWrapper{}
 }
 
-func (c *CapabilitySet) Read(reader *core.Reader) error {
-	c.capabilitySetType, _ = core.ReadUInt16LE(reader)
-	c.lengthCapability, _ = core.ReadUInt16LE(reader)
-	switch CapsType(c.capabilitySetType) {
-	case CAPSTYPE_GENERAL:
-		c.capability = NewGeneralCapability(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-	case CAPSTYPE_BITMAP:
-		c.capability = NewBitmapCapability(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-	case CAPSTYPE_ORDER:
-		c.capability = NewOrderCapability(nil, core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-		break;
-	case CAPSTYPE_BITMAPCACHE:
-		c.capability = NewBitmapCacheCapability(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-		break;
-	case CAPSTYPE_POINTER:
-		c.capability = NewPointerCapability(false, core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-	case CAPSTYPE_INPUT:
-		c.capability = NewInputCapability(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-		break;
-	case CAPSTYPE_BRUSH:
-		c.capability = NewBrushCapability(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-	case CAPSTYPE_GLYPHCACHE:
-		c.capability = NewGlyphCapability(nil, core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-	case CAPSTYPE_OFFSCREENCACHE:
-		c.capability = NewOffscreenBitmapCacheCapability(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-	case CAPSTYPE_VIRTUALCHANNEL:
-		c.capability = NewVirtualChannelCapability(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-		break;
-	case CAPSTYPE_SOUND:
-		c.capability = NewSoundCapability(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-	case CAPSTYPE_CONTROL:
-		c.capability = NewControlCapability(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-		break;
-	case CAPSTYPE_ACTIVATION:
-		c.capability = NewWindowActivationCapability(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-		break;
-	case CAPSTYPE_FONT:
-		c.capability = NewFontCapability(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-	case CAPSTYPE_COLORCACHE:
-		c.capability = NewColorCacheCapability(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-	case CAPSTYPE_SHARE:
-		c.capability = NewShareCapability(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-	case CAPSETTYPE_MULTIFRAGMENTUPDATE:
-		c.capability = NewMultiFragmentUpdate(core.NewComponentOption(c.lengthCapability - 4, false, false))
-		c.capability.(core.Readable).Read(reader)
-	default:
-		log.Printf("unknown capability %V", c.capabilitySetType)
-		c.capability, _ = core.ReadBytes(c.lengthCapability - 4, reader)
+func (c *CapabilityWrapper) Write(writer *core.Writer) error{
+	return errors.New("Нереализовано")
+}
+
+func (c *CapabilityWrapper) Read(reader *core.Reader) error {
+	var err error
+	c.CapabilitySetType, err = core.ReadUInt16LE(reader)
+	if err != nil {
+		return err
 	}
-	return nil
+	c.LengthCapability, err = core.ReadUInt16LE(reader)
+	limitedReader := core.NewLimitedReader(reader, int(c.LengthCapability - 4))
+	switch CapsType(c.CapabilitySetType) {
+	case CAPSTYPE_GENERAL:
+		c.Capability = NewGeneralCapability()
+	case CAPSTYPE_BITMAP:
+		c.Capability = NewBitmapCapability()
+	case CAPSTYPE_ORDER:
+		c.Capability = NewOrderCapability(nil)
+	case CAPSTYPE_BITMAPCACHE:
+		c.Capability = NewBitmapCacheCapability()
+	case CAPSTYPE_POINTER:
+		c.Capability = NewPointerCapability(false)
+	case CAPSTYPE_INPUT:
+		c.Capability = NewInputCapability()
+	case CAPSTYPE_BRUSH:
+		c.Capability = NewBrushCapability()
+	case CAPSTYPE_GLYPHCACHE:
+		c.Capability = NewGlyphCapability(nil)
+	case CAPSTYPE_OFFSCREENCACHE:
+		c.Capability = NewOffscreenBitmapCacheCapability()
+	case CAPSTYPE_VIRTUALCHANNEL:
+		c.Capability = NewVirtualChannelCapability()
+	case CAPSTYPE_SOUND:
+		c.Capability = NewSoundCapability()
+	case CAPSTYPE_CONTROL:
+		c.Capability = NewControlCapability()
+	case CAPSTYPE_ACTIVATION:
+		c.Capability = NewWindowActivationCapability()
+	case CAPSTYPE_FONT:
+		c.Capability = NewFontCapability()
+	case CAPSTYPE_COLORCACHE:
+		c.Capability = NewColorCacheCapability()
+	case CAPSTYPE_SHARE:
+		c.Capability = NewShareCapability()
+	case CAPSETTYPE_MULTIFRAGMENTUPDATE:
+		c.Capability = NewMultiFragmentUpdate()
+
+	default:
+		log.Printf("unknown capability %V", c.CapabilitySetType)
+		c.Capability, _ = core.AllocAndReadBytes(int(c.LengthCapability - 4), reader)
+		return nil
+	}
+	return c.Capability.(core.Readable).Read(limitedReader)
 }
 
 

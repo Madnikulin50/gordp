@@ -1,7 +1,7 @@
-package t125
+package per
 
 import (
-	"../../core"
+	"../../../core"
 	"errors"
 )
 
