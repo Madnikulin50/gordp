@@ -53,25 +53,25 @@ type X224Negotiation struct {
 	Type X224NegotiationType
 	Flag uint8
 	Length uint16
-	Result X224Protocol
+	Result uint32
 }
 
 func NewX224Negotiation() *X224Negotiation {
-	return &X224Negotiation{0, 0,0x0008 /*constant*/, X224_PROTOCOL_RDP}
+	return &X224Negotiation{0, 0,0x0008 /*constant*/, uint32(X224_PROTOCOL_RDP) }
 }
 
 func (x *X224Negotiation) Write(w core.Writer) {
 	core.WriteByte(byte(x.Type), w)
 	core.WriteUInt8(x.Flag, w)
 	core.WriteUInt16LE(x.Length, w)
-	core.WriteUInt32LE(uint32(x.Result), w)
+	core.WriteUInt32LE(x.Result, w)
 }
 
 func (x *X224Negotiation) Read(r core.Reader) {
 	x.Type = X224NegotiationType(core.ReadByte(r))
 	x.Flag = core.ReadUInt8(r)
 	x.Length = core.ReadUInt16LE(r)
-	x.Result = X224Protocol(core.ReadUInt32LE(r))
+	x.Result = core.ReadUInt32LE(r)
 	if x.Length == 0x0008 {
 		panic("invalid x224 negoitiate")
 	}
@@ -334,13 +334,13 @@ func NewX224Client(transport *core.Transport) *X224Client {
 func (x *X224Client) Connect() {
 	message := NewX224ClientConnectionRequestPDU(make([] byte, 0))
 	message.ProtocolNeg.Type = X224_TYPE_RDP_NEG_REQ
-	message.ProtocolNeg.Result = x.requestedProtocol
+	message.ProtocolNeg.Result = uint32(x.requestedProtocol)
 
 	message.Write(x.transport)
 
 // next state wait connection confirm packet
 	go func() {
-		x.recvConnectionConfirm()
+		x.recvConnectionConfirm(x.transport)
 	} ()
 }
 
@@ -364,7 +364,7 @@ func (x *X224Client) recvConnectionConfirm(tr *core.Transport) error {
 	}
 
 	if message.ProtocolNeg.Type == X224_TYPE_RDP_NEG_RSP {
-		x.selectedProtocol = message.ProtocolNeg.Result
+		x.selectedProtocol = X224Protocol(message.ProtocolNeg.Result)
 	}
 
 	if x.selectedProtocol == X224_PROTOCOL_HYBRID || x.selectedProtocol == X224_PROTOCOL_HYBRID_EX {
@@ -385,92 +385,10 @@ func (x *X224Client) recvConnectionConfirm(tr *core.Transport) error {
 	if x.selectedProtocol == X224_PROTOCOL_SSL {
 		core.Info("SSL standard security selected")
 		/* TODO
-		this.transport.transport.startTLS(function() {
+		this.transport.startTLS(function() {
 	self.emit('connect', self.selectedProtocol);
 	});
 	return; */
 	}
 	return nil
 }
-
-/**
- * Server x224 automata
-*/
-type X224Server struct {
-	X224
-	keyFilePath string
-	crtFilePath string
-}
-
-func NewX224Server(tr *core.Transport, keyFilePath string, crtFilePath string) *X224Server {
-	x := &X224Server{*NewX224(tr), keyFilePath, crtFilePath}
-	core.StartAllocAndReadBytes(3, tr, func(s []byte, err error) {
-		rd := bytes.NewReader(s)
-		x.recvConnectionRequest(rd)
-	})
-
-	return x
-}
-/* function Server(transport, keyFilePath, crtFilePath) {
-X224.call(this, transport);
-this.keyFilePath = keyFilePath;
-this.crtFilePath = crtFilePath;
-var self = this;
-this.transport.once('data', function (s) {
-self.recvConnectionRequest(s);
-});
-}
-
-//inherit from X224 automata
-inherits(Server, X224);
-*/
-
-/**
- * @see http://msdn.microsoft.com/en-us/library/cc240470.aspx
- * @param s {type.Stream}
- */
-Server.prototype.recvConnectionRequest = function (s) {
-var request = clientConnectionRequestPDU().read(s);
-if (!request.obj.protocolNeg.isReaded) {
-throw new Error('NODE_RDP_PROTOCOL_X224_NO_BASIC_SECURITY_LAYER');
-}
-
-this.requestedProtocol = request.obj.protocolNeg.obj.result.value;
-this.selectedProtocol = this.requestedProtocol & Protocols.PROTOCOL_SSL;
-
-if (!(this.selectedProtocol & Protocols.PROTOCOL_SSL)) {
-var confirm = serverConnectionConfirm();
-confirm.obj.protocolNeg.obj.type.value = NegociationType.TYPE_RDP_NEG_FAILURE;
-confirm.obj.protocolNeg.obj.result.value = NegotiationFailureCode.SSL_REQUIRED_BY_SERVER;
-this.transport.send(confirm);
-this.close();
-}
-else {
-this.sendConnectionConfirm();
-}
-};
-
-/**
- * Start SSL connection if needed
- * @see http://msdn.microsoft.com/en-us/library/cc240501.aspx
- */
-Server.prototype.sendConnectionConfirm = function () {
-var confirm = serverConnectionConfirm();
-confirm.obj.protocolNeg.obj.type.value = NegotiationType.TYPE_RDP_NEG_RSP;
-confirm.obj.protocolNeg.obj.result.value = this.selectedProtocol;
-this.transport.send(confirm);
-
-// finish connection sequence
-var self = this;
-this.transport.on('data', function(s) {
-self.recvData(s);
-});
-
-/*
-this.transport.transport.listenTLS(this.keyFilePath, this.crtFilePath, function() {
-log.info('start SSL connection');
-self.emit('connect', self.requestedProtocol);
-});
-};
-*/
-

@@ -148,7 +148,7 @@ func ReadInteger16(r core.Reader, minimum uint16) uint16 {
  * @param minimum {integer} decrement (default 0)
  * @returns {type.UInt16Be} per encoded integer 16 bits
  */
-func writeInteger16(value uint16, w core.Writer, minimum uint16) {
+func WriteInteger16(value uint16, w core.Writer, minimum uint16) {
 	core.WriteUInt16BE(value - minimum, w)
 }
 
@@ -201,7 +201,7 @@ func WriteObjectIdentifier(oid []byte, w core.Writer) {
 func ReadNumericString(r core.Reader, minValue uint16) {
 	length := ReadLength(r)
 	length = (length + minValue + 1) / 2
-	core.ReadPadding(length, r)
+	core.ReadPadding(int(length), r)
 }
 
 /**
